@@ -25,11 +25,11 @@ export class Gate extends Obstacle {
   constructor(
     scene: Scene,
     position: Vector3,
-    speed: number,
+    lane: number,
     gateType: GateType,
     value: number
   ) {
-    super(scene, position, speed);
+    super(scene, position, lane);
     this.gateType = gateType;
     this.value = value;
     this.glowParts = []; // Initialize after super()
@@ -156,7 +156,7 @@ export class Gate extends Obstacle {
     const text =
       this.gateType === GateType.MULTIPLY ? `x${this.value}` : `+${this.value}`;
 
-    const ctx = texture.getContext();
+    const ctx = texture.getContext() as CanvasRenderingContext2D;
 
     // Draw background glow
     ctx.fillStyle = `rgba(${color.r * 255}, ${color.g * 255}, ${color.b * 255}, 0.3)`;

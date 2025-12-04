@@ -19,10 +19,9 @@ import { CrowdFormation } from '@/systems/CrowdFormation';
 export class EnemyCrowd extends Obstacle {
   private enemyCount: number;
   private crowdFormation: CrowdFormation;
-  private labelMesh!: TransformNode;
 
-  constructor(scene: Scene, position: Vector3, speed: number, count: number) {
-    super(scene, position, speed);
+  constructor(scene: Scene, position: Vector3, lane: number, count: number) {
+    super(scene, position, lane);
     this.enemyCount = count;
 
     // Create crowd formation for enemy
@@ -85,7 +84,7 @@ export class EnemyCrowd extends Obstacle {
 
     const text = `-${this.enemyCount}`;
 
-    const ctx = texture.getContext();
+    const ctx = texture.getContext() as CanvasRenderingContext2D;
     // Fill background with semi-transparent red for debugging
     ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
     ctx.fillRect(0, 0, 512, 256);

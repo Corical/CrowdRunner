@@ -16,11 +16,14 @@ export abstract class Obstacle
   protected scene: Scene;
   protected speed: number;
   protected hasCollided: boolean = false;
+  protected shouldDestroy: boolean = false;
+  protected lane: number;
 
-  constructor(scene: Scene, position: Vector3, speed: number) {
+  constructor(scene: Scene, position: Vector3, lane: number, speed?: number) {
     this.scene = scene;
     this.position = position.clone();
-    this.speed = speed;
+    this.lane = lane;
+    this.speed = speed ?? Config.OBSTACLE_SPEED;
     this.createMesh();
   }
 
@@ -46,10 +49,17 @@ export abstract class Obstacle
   }
 
   /**
-   * Check if obstacle should be removed (went past player)
+   * Check if obstacle should be removed (went past player or marked for destruction)
    */
   public shouldRemove(): boolean {
-    return this.position.z < Config.OBSTACLE_DESPAWN_DISTANCE;
+    return this.position.z < Config.OBSTACLE_DESPAWN_DISTANCE || this.shouldDestroy;
+  }
+
+  /**
+   * Get the lane this obstacle is in
+   */
+  public getLane(): number {
+    return this.lane;
   }
 
   /**

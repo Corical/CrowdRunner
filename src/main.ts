@@ -1,7 +1,16 @@
-import { GameManager } from './core/GameManager';
+import { EnhancedGameManager } from './core/EnhancedGameManager';
 
 /**
- * Main entry point
+ * Main entry point - Now with ALL the amazing new features!
+ * - Particle effects (explosions, trails, celebrations)
+ * - Sound system (music + SFX)
+ * - Power-ups (shield, magnet, speed, multiplier)
+ * - Combo system with multipliers
+ * - Screen shake and camera effects
+ * - Floating damage/gain numbers
+ * - High score tracking with localStorage
+ * - Progressive difficulty system
+ * - Milestone achievements
  */
 async function main() {
   try {
@@ -11,11 +20,12 @@ async function main() {
       throw new Error('Canvas element not found');
     }
 
-    // Initialize game
-    const game = GameManager.getInstance();
+    // Initialize enhanced game with all new systems
+    const game = EnhancedGameManager.getInstance();
     await game.initialize(canvas);
 
-    console.log('Crowd Runner initialized successfully!');
+    console.log('🎮 Enhanced Crowd Runner initialized successfully!');
+    console.log('✨ New features: Particles, Sound, Power-ups, Combos, Progression & more!');
   } catch (error) {
     console.error('Failed to initialize game:', error);
     const loadingElement = document.getElementById('loading');

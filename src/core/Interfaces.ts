@@ -62,4 +62,6 @@ export interface IUIManager {
   hideGameOver(): void;
   onStartGame(callback: () => void): void;
   onRestartGame(callback: () => void): void;
+  onSpeedChange?(callback: (speed: number) => void): void;
+  onFrequencyChange?(callback: (interval: number) => void): void;
 }

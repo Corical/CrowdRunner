@@ -1,6 +1,6 @@
 import { Scene, Vector3 } from '@babylonjs/core';
 import { IUpdatable } from '@/core/Interfaces';
-import { Config, ObstacleType, GateType, Lane } from '@/core/Config';
+import { Config, GateType, Lane } from '@/core/Config';
 import { Obstacle } from '@/entities/Obstacle';
 import { Gate } from '@/entities/Gate';
 import { EnemyCrowd } from '@/entities/EnemyCrowd';
@@ -15,7 +15,6 @@ export class ObstacleManager implements IUpdatable {
   private obstacles: Obstacle[] = [];
   private spawnTimer: number = 0;
   private spawnInterval: number = Config.OBSTACLE_SPAWN_INTERVAL;
-  private gameSpeed: number = Config.GAME_SPEED;
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -24,7 +23,8 @@ export class ObstacleManager implements IUpdatable {
   /**
    * Update all obstacles and spawn new ones
    */
-  public update(deltaTime: number, player: Player): void {
+  public update(deltaTime: number, player?: Player): void {
+    if (!player) return;
     // Update spawn timer
     this.spawnTimer += deltaTime;
     if (
@@ -73,13 +73,13 @@ export class ObstacleManager implements IUpdatable {
 
     if (rand < 0.4) {
       // 40% chance: Multiplication gate
-      obstacle = this.createMultiplyGate(laneX);
+      obstacle = this.createMultiplyGate(laneX, randomLane);
     } else if (rand < 0.7) {
       // 30% chance: Addition gate
-      obstacle = this.createAddGate(laneX);
+      obstacle = this.createAddGate(laneX, randomLane);
     } else {
       // 30% chance: Enemy crowd
-      obstacle = this.createEnemyCrowd(laneX);
+      obstacle = this.createEnemyCrowd(laneX, randomLane);
     }
 
     this.obstacles.push(obstacle);
@@ -88,36 +88,36 @@ export class ObstacleManager implements IUpdatable {
   /**
    * Create multiplication gate
    */
-  private createMultiplyGate(x: number): Gate {
+  private createMultiplyGate(laneX: number, lane: Lane): Gate {
     const multipliers = Config.GATE_MULTIPLIERS;
     const value = multipliers[Math.floor(Math.random() * multipliers.length)];
-    const position = new Vector3(x, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
+    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
 
-    return new Gate(this.scene, position, this.gameSpeed, GateType.MULTIPLY, value);
+    return new Gate(this.scene, position, lane, GateType.MULTIPLY, value);
   }
 
   /**
    * Create addition gate
    */
-  private createAddGate(x: number): Gate {
+  private createAddGate(laneX: number, lane: Lane): Gate {
     const additions = Config.GATE_ADDITIONS;
     const value = additions[Math.floor(Math.random() * additions.length)];
-    const position = new Vector3(x, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
+    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
 
-    return new Gate(this.scene, position, this.gameSpeed, GateType.ADD, value);
+    return new Gate(this.scene, position, lane, GateType.ADD, value);
   }
 
   /**
    * Create enemy crowd
    */
-  private createEnemyCrowd(x: number): EnemyCrowd {
+  private createEnemyCrowd(laneX: number, lane: Lane): EnemyCrowd {
     const count =
       Math.floor(
         Math.random() * (Config.MAX_ENEMY_COUNT - Config.MIN_ENEMY_COUNT)
       ) + Config.MIN_ENEMY_COUNT;
-    const position = new Vector3(x, 0.75, Config.OBSTACLE_SPAWN_DISTANCE);
+    const position = new Vector3(laneX, 0.75, Config.OBSTACLE_SPAWN_DISTANCE);
 
-    return new EnemyCrowd(this.scene, position, this.gameSpeed, count);
+    return new EnemyCrowd(this.scene, position, lane, count);
   }
 
   /**
@@ -138,7 +138,6 @@ export class ObstacleManager implements IUpdatable {
    * Set game speed (affects obstacle movement)
    */
   public setGameSpeed(speed: number): void {
-    this.gameSpeed = speed;
     // Update existing obstacles
     this.obstacles.forEach((obs) => {
       (obs as any).speed = speed;
