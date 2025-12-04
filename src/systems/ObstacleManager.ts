@@ -74,12 +74,18 @@ export class ObstacleManager implements IUpdatable {
     if (rand < 0.7) {
       // 70% chance: Addition gate
       obstacle = this.createAddGate(laneX, randomLane);
+      this.obstacles.push(obstacle);
     } else {
       // 30% chance: Enemy crowd
       obstacle = this.createEnemyCrowd(laneX, randomLane);
-    }
+      this.obstacles.push(obstacle);
 
-    this.obstacles.push(obstacle);
+      // 30% chance to spawn a gate behind the enemy (risk/reward trap)
+      if (Math.random() < Config.TRAP_SPAWN_CHANCE) {
+        const trapGate = this.createAddGate(laneX, randomLane, 15); // 15 units behind enemy
+        this.obstacles.push(trapGate);
+      }
+    }
   }
 
   /**
@@ -95,11 +101,12 @@ export class ObstacleManager implements IUpdatable {
 
   /**
    * Create addition gate
+   * @param offset Optional distance offset (positive = further away)
    */
-  private createAddGate(laneX: number, lane: Lane): Gate {
+  private createAddGate(laneX: number, lane: Lane, offset: number = 0): Gate {
     const additions = Config.GATE_ADDITIONS;
     const value = additions[Math.floor(Math.random() * additions.length)];
-    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
+    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE + offset);
 
     return new Gate(this.scene, position, lane, GateType.ADD, value);
   }

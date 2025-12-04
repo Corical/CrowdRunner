@@ -14,6 +14,9 @@ export const Config = {
   // Feature flags
   ENABLE_FANCY_ANIMATIONS: false, // Disable floating text, particles, screen shake, etc.
 
+  // Difficulty/Strategy settings
+  TRAP_SPAWN_CHANCE: 0.3, // 30% chance to spawn a good gate behind an enemy (risk/reward)
+
   // Lane positions
   LANES: {
     LEFT: -5,
