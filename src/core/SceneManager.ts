@@ -100,11 +100,11 @@ export class SceneManager implements ISceneManager {
     // Create ground plane
     const ground = MeshBuilder.CreateGround(
       'ground',
-      { width: 100, height: 200 },
+      { width: 100, height: 300 },
       this.scene
     );
     ground.position.y = -0.1;
-    ground.position.z = 50;
+    ground.position.z = 75;
 
     const groundMat = new StandardMaterial('groundMat', this.scene);
     groundMat.diffuseColor = Color3.FromHexString(Config.COLORS.GROUND);
@@ -113,11 +113,11 @@ export class SceneManager implements ISceneManager {
     // Create road
     const road = MeshBuilder.CreateGround(
       'road',
-      { width: Config.ROAD_WIDTH, height: 200 },
+      { width: Config.ROAD_WIDTH, height: 300 },
       this.scene
     );
     road.position.y = 0;
-    road.position.z = 50;
+    road.position.z = 75;
 
     const roadMat = new StandardMaterial('roadMat', this.scene);
     roadMat.diffuseColor = Color3.FromHexString(Config.COLORS.ROAD);
@@ -137,26 +137,26 @@ export class SceneManager implements ISceneManager {
     // Left lane marker
     const leftMarker = MeshBuilder.CreateBox(
       'leftMarker',
-      { width: 0.2, height: 0.1, depth: 200 },
+      { width: 0.2, height: 0.1, depth: 300 },
       this.scene
     );
     leftMarker.position = new Vector3(
       (Config.LANES.LEFT + Config.LANES.CENTER) / 2,
       0.1,
-      50
+      75
     );
     leftMarker.material = markerMaterial;
 
     // Right lane marker
     const rightMarker = MeshBuilder.CreateBox(
       'rightMarker',
-      { width: 0.2, height: 0.1, depth: 200 },
+      { width: 0.2, height: 0.1, depth: 300 },
       this.scene
     );
     rightMarker.position = new Vector3(
       (Config.LANES.RIGHT + Config.LANES.CENTER) / 2,
       0.1,
-      50
+      75
     );
     rightMarker.material = markerMaterial;
   }

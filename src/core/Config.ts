@@ -25,7 +25,7 @@ export const Config = {
 
   // Obstacle settings
   OBSTACLE_SPAWN_INTERVAL: 2.5, // seconds
-  OBSTACLE_SPAWN_DISTANCE: 50, // distance ahead of player
+  OBSTACLE_SPAWN_DISTANCE: 100, // distance ahead of player
   OBSTACLE_SPEED: 10,
   OBSTACLE_DESPAWN_DISTANCE: -20, // behind player
   MIN_ENEMY_COUNT: 20,
