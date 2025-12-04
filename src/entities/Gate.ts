@@ -19,7 +19,7 @@ import { Config, GateType } from '@/core/Config';
 export class Gate extends Obstacle {
   private gateType: GateType;
   private value: number;
-  private glowParts: Mesh[] = [];
+  private glowParts: Mesh[];
   private animationTime: number = 0;
 
   constructor(
@@ -32,12 +32,18 @@ export class Gate extends Obstacle {
     super(scene, position, speed);
     this.gateType = gateType;
     this.value = value;
+    this.glowParts = []; // Initialize after super()
   }
 
   /**
    * Create portal/arch style gate
    */
   protected createMesh(): void {
+    // Initialize glowParts if not already done
+    if (!this.glowParts) {
+      this.glowParts = [];
+    }
+
     // Create parent node
     const gateNode = new TransformNode('gate', this.scene);
     gateNode.position = this.position.clone();
