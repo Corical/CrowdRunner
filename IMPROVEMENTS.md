@@ -425,3 +425,71 @@ npm run build
 
 **Generated**: 2025-12-04
 **Version**: 1.0.0 (Enhanced)
+
+---
+
+## 🐛 Bug Fixes & Rebalancing (December 2025)
+
+### Critical Fixes
+
+#### PowerUp Initialization Crash
+- **Issue**: Game crashed when collecting power-ups
+- **Root Cause**: `this.powerUpType` accessed before `super()` call in constructor
+- **Solution**: Recreate mesh after `super()` call with proper type set
+- **Files**: `src/entities/PowerUp.ts`
+
+#### Game Speed Architecture Refactor
+- **Issue**: Inconsistent obstacle speeds, game speed reset on collisions
+- **Root Cause**: Each obstacle stored its own speed property
+- **Solution**: Centralized speed control via `deltaTime` scaling
+- **Impact**: All obstacles now move at consistent speed
+- **Files**: `src/entities/Obstacle.ts`, `src/core/EnhancedGameManager.ts`, `src/systems/ObstacleManager.ts`
+
+#### Speed Slider Broken
+- **Issue**: Speed slider defaulted to 10x speed (unplayable)
+- **Root Cause**: HTML slider range (5-50) designed for old direct speed values
+- **Solution**: Changed range to 0.5-3.0x multiplier, fixed display calculation
+- **Files**: `index.html`, `src/ui/UIManager.ts`
+
+### Game Balance Changes
+
+#### Disabled Multiplication Gates
+- **Issue**: Exponential growth reaching absurd numbers (1.69×10³⁰ at 2745m)
+- **Solution**: Removed all multiplication gates (×2, ×5, ×10)
+- **Rationale**: Linear growth is more predictable and balanced
+
+#### Addition-Only Rebalancing
+- **Gate Values**: Increased from +5-20 to +10-50
+- **Starting Crowd**: Increased from 5 to 20 people
+- **Spawn Rates**: 70% addition gates, 30% enemies
+- **Result**: Linear growth (~200-500 people at 2745m instead of 10³⁰)
+
+### Feature Flags
+
+#### Animation Toggle
+- **Added**: `ENABLE_FANCY_ANIMATIONS` config flag
+- **Default**: `false` (disabled)
+- **Controls**: Particles, floating text, camera shake, screen effects
+- **Audio**: Still enabled (independent of visual effects)
+- **Purpose**: Cleaner gameplay, better performance
+
+### Speed System Architecture
+
+#### New Multi-Layer Speed System
+```
+Total Speed = Manual × Difficulty × PowerUp
+```
+
+- **Manual Speed** (0.5x - 3.0x): UI slider control
+- **Difficulty Speed** (1.0x - 1.3x): Increases with level progression
+- **Power-Up Speed** (1.5x): Temporary boost from speed power-up
+
+**Example**:
+- Default: 1.0 × 1.0 × 1.0 = **1.0x**
+- Level 5 with boost: 1.0 × 1.15 × 1.5 = **1.725x**
+- Slider 2x, Level 10, boost: 2.0 × 1.3 × 1.5 = **3.9x**
+
+### Commits
+- `bd32b50` - fix: Refactor game speed system and add animation toggle
+- `660c540` - fix: Disable multiplication gates and rebalance for linear growth
+
