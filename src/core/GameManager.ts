@@ -67,7 +67,9 @@ export class GameManager {
     this.uiManager.onStartGame(() => this.startGame());
     this.uiManager.onRestartGame(() => this.startGame());
     this.uiManager.onSpeedChange?.((speed: number) => {
-      this.obstacleManager.setGameSpeed(speed);
+      // Speed is now handled via manual speed multiplier in EnhancedGameManager
+      // This legacy GameManager is not used anymore
+      console.log('Speed changed to:', speed);
     });
     this.uiManager.onFrequencyChange?.((interval: number) => {
       this.obstacleManager.setSpawnInterval(interval);

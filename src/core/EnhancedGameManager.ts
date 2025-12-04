@@ -17,6 +17,15 @@ import { ProgressionSystem, Milestone } from '@/systems/ProgressionSystem';
 import { DifficultySystem } from '@/systems/DifficultySystem';
 import { Gate } from '@/entities/Gate';
 import { EnemyCrowd } from '@/entities/EnemyCrowd';
+import { RandomEventSystem, RandomEventType } from '@/systems/RandomEventSystem';
+import { MomentumSystem, MomentumTier } from '@/systems/MomentumSystem';
+import { ObstaclePatternSystem, PatternType } from '@/systems/ObstaclePatternSystem';
+import { AdaptiveDifficultySystem, DifficultyTrend } from '@/systems/AdaptiveDifficultySystem';
+import { LanePersonalitySystem, LanePersonality } from '@/systems/LanePersonalitySystem';
+import { NearMissSystem } from '@/systems/NearMissSystem';
+import { CriticalHitSystem } from '@/systems/CriticalHitSystem';
+import { EnemyMutationSystem } from '@/systems/EnemyMutationSystem';
+import { ComebackSystem, ComebackType } from '@/systems/ComebackSystem';
 
 /**
  * Enhanced GameManager with all new systems integrated
@@ -45,6 +54,17 @@ export class EnhancedGameManager {
   private floatingText!: FloatingTextSystem;
   private progressionSystem!: ProgressionSystem;
   private difficultySystem!: DifficultySystem;
+
+  // New dynamic systems
+  private randomEventSystem!: RandomEventSystem;
+  private momentumSystem!: MomentumSystem;
+  private obstaclePatternSystem!: ObstaclePatternSystem;
+  private adaptiveDifficultySystem!: AdaptiveDifficultySystem;
+  private lanePersonalitySystem!: LanePersonalitySystem;
+  private nearMissSystem!: NearMissSystem;
+  private criticalHitSystem!: CriticalHitSystem;
+  private enemyMutationSystem!: EnemyMutationSystem;
+  private comebackSystem!: ComebackSystem;
 
   // Game entities
   private player!: Player;
@@ -106,6 +126,67 @@ export class EnhancedGameManager {
       (level) => this.onLevelUp(level)
     );
 
+    // Initialize new dynamic systems (if enabled)
+    if (Config.ENABLE_RANDOM_EVENTS) {
+      this.randomEventSystem = new RandomEventSystem(
+        (type) => this.onRandomEventStart(type),
+        (type) => this.onRandomEventEnd(type)
+      );
+    }
+
+    if (Config.ENABLE_MOMENTUM_SYSTEM) {
+      this.momentumSystem = new MomentumSystem(
+        (tier) => this.onMomentumTierChange(tier),
+        () => this.onAutoShield()
+      );
+    }
+
+    if (Config.ENABLE_OBSTACLE_PATTERNS) {
+      this.obstaclePatternSystem = new ObstaclePatternSystem(
+        (pattern) => this.onPatternStart(pattern),
+        (pattern) => this.onPatternEnd(pattern)
+      );
+    }
+
+    if (Config.ENABLE_ADAPTIVE_DIFFICULTY) {
+      this.adaptiveDifficultySystem = new AdaptiveDifficultySystem(
+        (trend, score) => this.onAdaptiveDifficultyChange(trend, score)
+      );
+    }
+
+    if (Config.ENABLE_LANE_PERSONALITIES) {
+      this.lanePersonalitySystem = new LanePersonalitySystem(
+        (lane, personality) => this.onLanePersonalityAssigned(lane, personality),
+        (lane, personality) => this.onLanePersonalityExpired(lane, personality)
+      );
+    }
+
+    if (Config.ENABLE_NEAR_MISS_REWARDS) {
+      this.nearMissSystem = new NearMissSystem(
+        (event) => this.onNearMiss(event),
+        (streak, bonus) => this.onNearMissStreak(streak, bonus)
+      );
+    }
+
+    if (Config.ENABLE_CRITICAL_HITS) {
+      this.criticalHitSystem = new CriticalHitSystem(
+        (event) => this.onCriticalHit(event)
+      );
+    }
+
+    if (Config.ENABLE_ENEMY_MUTATIONS) {
+      this.enemyMutationSystem = new EnemyMutationSystem(
+        (mutation) => this.onEnemyMutation(mutation)
+      );
+    }
+
+    if (Config.ENABLE_COMEBACK_MECHANICS) {
+      this.comebackSystem = new ComebackSystem(
+        (type, dangerLevel) => this.onComebackTriggered(type, dangerLevel),
+        () => this.onSecondChanceUsed()
+      );
+    }
+
     // Initialize camera effects
     const camera = scene.activeCamera as BABYLON.ArcRotateCamera;
     this.cameraEffects = new CameraEffects(camera);
@@ -157,6 +238,17 @@ export class EnhancedGameManager {
     this.comboSystem.resetCombo();
     this.difficultySystem.reset();
     this.progressionSystem.startNewGame();
+
+    // Reset new dynamic systems
+    if (this.randomEventSystem) this.randomEventSystem.destroy();
+    if (this.momentumSystem) this.momentumSystem.reset();
+    if (this.obstaclePatternSystem) this.obstaclePatternSystem.reset();
+    if (this.adaptiveDifficultySystem) this.adaptiveDifficultySystem.reset();
+    if (this.lanePersonalitySystem) this.lanePersonalitySystem.reset();
+    if (this.nearMissSystem) this.nearMissSystem.reset();
+    if (this.criticalHitSystem) this.criticalHitSystem.reset();
+    if (this.enemyMutationSystem) this.enemyMutationSystem.reset();
+    if (this.comebackSystem) this.comebackSystem.reset();
 
     if (this.animationsEnabled) {
       this.cameraEffects.reset();
@@ -242,11 +334,28 @@ export class EnhancedGameManager {
     this.powerUpManager.update(deltaTime);
     this.comboSystem.update(deltaTime);
 
+    // Update new dynamic systems
+    if (this.randomEventSystem) this.randomEventSystem.update(deltaTime);
+    if (this.momentumSystem) this.momentumSystem.update(deltaTime);
+    if (this.obstaclePatternSystem) this.obstaclePatternSystem.update(deltaTime);
+    if (this.adaptiveDifficultySystem) {
+      this.adaptiveDifficultySystem.update(deltaTime);
+      this.adaptiveDifficultySystem.updateCrowdSize(this.player.getCrowdCount());
+    }
+    if (this.lanePersonalitySystem) this.lanePersonalitySystem.update(deltaTime);
+    if (this.nearMissSystem) this.nearMissSystem.update(deltaTime);
+    if (this.criticalHitSystem) this.criticalHitSystem.update(deltaTime);
+    if (this.enemyMutationSystem) this.enemyMutationSystem.update(deltaTime);
+    if (this.comebackSystem) {
+      this.comebackSystem.update(deltaTime);
+      this.comebackSystem.updateCrowdSize(this.player.getCrowdCount());
+    }
+
     // Apply regeneration power-up
     if (this.powerUpManager.hasRegen()) {
       const regenAmount = Math.floor(Config.POWER_UP_EFFECTS.REGEN_RATE_PER_SECOND * deltaTime);
       if (regenAmount > 0) {
-        this.player.addCrowd(regenAmount);
+        this.player.addToCrowd(regenAmount);
       }
     }
 
@@ -278,8 +387,13 @@ export class EnhancedGameManager {
     this.uiManager.updateCrowdCount(this.player.getCrowdCount());
     this.uiManager.updateDistance(this.distance);
 
-    // Check game over condition
+    // Check game over condition (with second chance)
     if (this.player.getCrowdCount() <= 0) {
+      // Try second chance
+      if (this.comebackSystem && this.comebackSystem.checkSecondChance(this.player.getCrowdCount())) {
+        // Second chance triggered - player saved!
+        return;
+      }
       this.gameOver();
     }
   }
@@ -295,22 +409,51 @@ export class EnhancedGameManager {
     obstacles.forEach((obstacle: any) => {
       if (obstacle instanceof Gate && !obstacle.hasAlreadyCollided()) {
         if (obstacle.checkCollision(playerPos, playerRadius)) {
-          // Apply frenzy multiplier to gate value
-          const originalValue = (obstacle as any).value;
-          if (this.powerUpManager.hasFrenzy()) {
-            (obstacle as any).value = Math.floor(originalValue * Config.POWER_UP_EFFECTS.FRENZY_MULTIPLIER);
+          let gateValue = (obstacle as any).value;
+
+          // Apply momentum multiplier
+          if (this.momentumSystem) {
+            gateValue = Math.floor(gateValue * this.momentumSystem.getGateMultiplier());
           }
+
+          // Apply comeback system multiplier
+          if (this.comebackSystem) {
+            gateValue = Math.floor(gateValue * this.comebackSystem.getGateValueMultiplier());
+          }
+
+          // Apply frenzy multiplier
+          if (this.powerUpManager.hasFrenzy()) {
+            gateValue = Math.floor(gateValue * Config.POWER_UP_EFFECTS.FRENZY_MULTIPLIER);
+          }
+
+          // Apply critical hit
+          if (this.criticalHitSystem) {
+            gateValue = this.criticalHitSystem.rollCritical(gateValue);
+          }
+
+          // Apply modified value by calling collision with modified value
+          // Store original value and temporarily modify
+          const originalValue = (obstacle as any).value;
+          (obstacle as any).value = gateValue;
 
           // Call original collision handler
           obstacle.onCollision(this.player);
 
           // Restore original value
-          if (this.powerUpManager.hasFrenzy()) {
-            (obstacle as any).value = originalValue;
-          }
+          (obstacle as any).value = originalValue;
 
           // Add to combo
           this.comboSystem.addToCombo();
+
+          // Add to momentum system
+          if (this.momentumSystem) {
+            this.momentumSystem.onGateCollected();
+          }
+
+          // Track for adaptive difficulty
+          if (this.adaptiveDifficultySystem) {
+            this.adaptiveDifficultySystem.recordGateCollected();
+          }
 
           // Audio feedback
           this.soundSystem.playSound(SoundType.GATE_COLLECT);
@@ -358,7 +501,7 @@ export class EnhancedGameManager {
         if (obstacle.checkCollision(playerPos, playerRadius)) {
           // Check for ghost mode (pass through enemies)
           if (this.powerUpManager.hasGhost()) {
-            obstacle.hasCollided = true; // Mark as collided but don't damage
+            (obstacle as any).hasCollided = true; // Mark as collided but don't damage
             this.soundSystem.playSound(SoundType.POWER_UP);
             if (this.animationsEnabled) {
               this.floatingText.showPowerUpActivated('GHOST!', this.player.getPositionVector());
@@ -377,13 +520,13 @@ export class EnhancedGameManager {
             return;
           }
 
-          const enemyCount = (obstacle as any).enemyCount;
+          let enemyCount = (obstacle as any).enemyCount;
 
           // Check for vampire mode (steal instead of lose)
           if (this.powerUpManager.hasVampire()) {
             const stolenCrowd = Math.floor(enemyCount * Config.POWER_UP_EFFECTS.VAMPIRE_STEAL_PERCENT);
-            this.player.addCrowd(stolenCrowd);
-            obstacle.hasCollided = true;
+            this.player.addToCrowd(stolenCrowd);
+            (obstacle as any).hasCollided = true;
             this.soundSystem.playSound(SoundType.GATE_COLLECT);
             if (this.animationsEnabled) {
               const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
@@ -392,11 +535,27 @@ export class EnhancedGameManager {
             return;
           }
 
+          // Apply comeback system reduction
+          if (this.comebackSystem) {
+            enemyCount = Math.floor(enemyCount * this.comebackSystem.getEnemyStrengthMultiplier());
+            (obstacle as any).enemyCount = enemyCount;
+          }
+
           // Normal enemy collision (lose crowd)
           obstacle.onCollision(this.player);
 
           // Reset combo on enemy hit
           this.comboSystem.resetCombo();
+
+          // Notify momentum system
+          if (this.momentumSystem) {
+            this.momentumSystem.onEnemyHit();
+          }
+
+          // Track for adaptive difficulty
+          if (this.adaptiveDifficultySystem) {
+            this.adaptiveDifficultySystem.recordEnemyHit();
+          }
 
           // Audio feedback
           this.soundSystem.playSound(SoundType.ENEMY_HIT);
@@ -642,5 +801,133 @@ export class EnhancedGameManager {
 
   public getGameState(): GameState {
     return this.gameState;
+  }
+
+  /**
+   * NEW SYSTEM CALLBACKS
+   */
+
+  private onRandomEventStart(type: RandomEventType): void {
+    console.log(`🎲 Random Event Started: ${type}`);
+    // Event effects are applied through multipliers in the event system
+  }
+
+  private onRandomEventEnd(type: RandomEventType): void {
+    console.log(`⏱️ Random Event Ended: ${type}`);
+  }
+
+  private onMomentumTierChange(tier: MomentumTier): void {
+    if (tier === MomentumTier.NONE) return;
+
+    const tierName = this.momentumSystem?.getTierName();
+    console.log(`🔥 Momentum Tier: ${tierName} (${this.momentumSystem?.getGateMultiplier()}x gates)`);
+
+    if (this.animationsEnabled && tierName) {
+      const pos = this.player.getPositionVector();
+      pos.y += 3;
+      this.floatingText.showMilestone(`${tierName}!`, pos);
+    }
+  }
+
+  private onAutoShield(): void {
+    console.log(`🛡️ Auto-shield granted for 20s no damage!`);
+    this.powerUpManager.activatePowerUp(PowerUpType.SHIELD, 10);
+  }
+
+  private onPatternStart(pattern: PatternType): void {
+    console.log(`📐 Obstacle Pattern: ${pattern}`);
+  }
+
+  private onPatternEnd(pattern: PatternType): void {
+    console.log(`✓ Pattern Completed: ${pattern}`);
+  }
+
+  private onAdaptiveDifficultyChange(trend: DifficultyTrend, score: number): void {
+    console.log(`⚖️ Difficulty Adjusted: ${trend} (performance: ${(score * 100).toFixed(0)}%)`);
+  }
+
+  private onLanePersonalityAssigned(lane: number, personality: LanePersonality): void {
+    const config = this.lanePersonalitySystem?.getPersonalityConfig(personality);
+    console.log(`🎭 Lane ${lane} is now ${config?.name}`);
+  }
+
+  private onLanePersonalityExpired(lane: number, _personality: LanePersonality): void {
+    console.log(`⏱️ Lane ${lane} personality expired`);
+  }
+
+  private onNearMiss(event: any): void {
+    const { tier, bonus } = event;
+    console.log(`⚡ Near Miss (${tier}): +${bonus} bonus!`);
+
+    // Grant bonus crowd
+    this.player.addToCrowd(bonus);
+
+    if (this.animationsEnabled) {
+      const pos = this.player.getPositionVector();
+      pos.y += 2;
+      this.floatingText.showGain(bonus, pos);
+    }
+  }
+
+  private onNearMissStreak(streak: number, bonus: number): void {
+    console.log(`🎯 Near Miss Streak x${streak}: +${bonus} bonus!`);
+    this.player.addToCrowd(bonus);
+
+    if (this.animationsEnabled) {
+      this.soundSystem.playSound(SoundType.COMBO);
+    }
+  }
+
+  private onCriticalHit(event: any): void {
+    const { type, multiplier, finalValue } = event;
+    console.log(`💥 CRITICAL HIT (${type}): ${multiplier}x = ${finalValue}!`);
+
+    if (this.animationsEnabled) {
+      this.soundSystem.playSound(SoundType.MILESTONE);
+      this.cameraEffects.shakeLight();
+
+      const pos = this.player.getPositionVector();
+      pos.y += 4;
+      this.floatingText.showMilestone(`CRIT ${multiplier}x!`, pos);
+    }
+  }
+
+  private onEnemyMutation(mutation: any): void {
+    console.log(`🧬 Mutated Enemy Spawned: ${mutation.config.name}`);
+  }
+
+  private onComebackTriggered(type: ComebackType, dangerLevel: number): void {
+    console.log(`🆘 Comeback Activated: ${type} (danger: ${(dangerLevel * 100).toFixed(0)}%)`);
+
+    if (type === ComebackType.SHIELD_GRANT) {
+      this.powerUpManager.activatePowerUp(PowerUpType.SHIELD, 8);
+    } else if (type === ComebackType.POWERUP_RAIN) {
+      // Spawn 3 random power-ups
+      for (let i = 0; i < 3; i++) {
+        this.spawnPowerUp();
+      }
+    }
+
+    if (this.animationsEnabled) {
+      this.soundSystem.playSound(SoundType.POWER_UP);
+    }
+  }
+
+  private onSecondChanceUsed(): void {
+    console.log(`💫 SECOND CHANCE! Saved from death!`);
+
+    // Restore some crowd
+    this.player.addToCrowd(20);
+
+    // Grant temporary shield
+    this.powerUpManager.activatePowerUp(PowerUpType.SHIELD, 5);
+
+    if (this.animationsEnabled) {
+      this.soundSystem.playSound(SoundType.MILESTONE);
+      const pos = this.player.getPositionVector();
+      pos.y += 5;
+      this.floatingText.showMilestone('SECOND CHANCE!', pos);
+      this.particleSystem.createCelebrationEffect(pos);
+    }
   }
 }

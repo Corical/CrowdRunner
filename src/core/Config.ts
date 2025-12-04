@@ -14,6 +14,17 @@ export const Config = {
   // Feature flags
   ENABLE_FANCY_ANIMATIONS: false, // Disable floating text, particles, screen shake, etc.
 
+  // Dynamic Systems Configuration
+  ENABLE_RANDOM_EVENTS: true,        // Random timed events (Double Trouble, Feast/Famine, etc.)
+  ENABLE_MOMENTUM_SYSTEM: true,      // Streak bonuses and momentum tiers
+  ENABLE_OBSTACLE_PATTERNS: true,    // Structured spawn patterns (Zigzag, Tunnel, etc.)
+  ENABLE_ADAPTIVE_DIFFICULTY: true,  // Performance-based difficulty adjustment
+  ENABLE_LANE_PERSONALITIES: true,   // Lanes get temporary traits
+  ENABLE_NEAR_MISS_REWARDS: true,    // Reward skillful dodging
+  ENABLE_CRITICAL_HITS: true,        // Random massive multipliers
+  ENABLE_ENEMY_MUTATIONS: true,      // Special enemy properties
+  ENABLE_COMEBACK_MECHANICS: true,   // Help struggling players
+
   // Difficulty/Strategy settings
   TRAP_SPAWN_CHANCE: 0.3, // 30% chance to spawn a good gate behind an enemy (risk/reward)
 

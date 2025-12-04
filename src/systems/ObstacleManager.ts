@@ -67,16 +67,16 @@ export class ObstacleManager implements IUpdatable {
     const randomLane = laneValues[Math.floor(Math.random() * laneValues.length)];
     const laneX = this.getLaneXPosition(randomLane);
 
-    // Random obstacle type (multiplication disabled to prevent exponential growth)
+    // Random obstacle type (2x enemies vs gates for challenge)
     const rand = Math.random();
     let obstacle: Obstacle;
 
-    if (rand < 0.7) {
-      // 70% chance: Addition gate
+    if (rand < 0.33) {
+      // 33% chance: Addition gate
       obstacle = this.createAddGate(laneX, randomLane);
       this.obstacles.push(obstacle);
     } else {
-      // 30% chance: Enemy crowd
+      // 67% chance: Enemy crowd (2x more enemies than gates)
       obstacle = this.createEnemyCrowd(laneX, randomLane);
       this.obstacles.push(obstacle);
 
@@ -88,16 +88,6 @@ export class ObstacleManager implements IUpdatable {
     }
   }
 
-  /**
-   * Create multiplication gate
-   */
-  private createMultiplyGate(laneX: number, lane: Lane): Gate {
-    const multipliers = Config.GATE_MULTIPLIERS;
-    const value = multipliers[Math.floor(Math.random() * multipliers.length)];
-    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
-
-    return new Gate(this.scene, position, lane, GateType.MULTIPLY, value);
-  }
 
   /**
    * Create addition gate
