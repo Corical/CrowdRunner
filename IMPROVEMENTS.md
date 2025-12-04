@@ -493,3 +493,43 @@ Total Speed = Manual × Difficulty × PowerUp
 - `bd32b50` - fix: Refactor game speed system and add animation toggle
 - `660c540` - fix: Disable multiplication gates and rebalance for linear growth
 
+
+---
+
+## 🎯 Strategic Features (December 2025)
+
+### Risk/Reward Trap System
+
+**Problem**: Game was purely reaction-based with no strategic decision-making.
+
+**Solution**: Implemented "gates hidden behind enemies" mechanic.
+
+#### How It Works:
+- **30% chance** when an enemy spawns, an addition gate spawns 15 units behind it
+- Gate is visible peeking behind the red enemy crowd
+- Players must decide: take damage for reward, or avoid both?
+
+#### Strategic Depth:
+```
+High crowd (200+): Worth taking -20 to get +50 ✅
+Low crowd (<50): Might be game over ❌
+Shield active: Free reward! 🛡️
+```
+
+#### Configuration:
+- **Config.TRAP_SPAWN_CHANCE**: `0.3` (30%)
+- **Offset distance**: `15` units behind enemy
+- **Gate values**: Same as normal gates (+10, +20, +30, +50)
+
+#### Technical Implementation:
+- Added optional `offset` parameter to `createAddGate()`
+- Trap gates spawn at `OBSTACLE_SPAWN_DISTANCE + offset`
+- Independent spawn check after enemy creation
+- No performance impact (just additional obstacle)
+
+**Files Modified**: 
+- `src/core/Config.ts` (TRAP_SPAWN_CHANCE constant)
+- `src/systems/ObstacleManager.ts` (trap spawning logic)
+
+**Commit**: `04bac33`
+
