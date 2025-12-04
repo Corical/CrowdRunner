@@ -79,18 +79,25 @@ export class EnemyCrowd extends Obstacle {
     const texture = new DynamicTexture(
       'enemyText',
       { width: 512, height: 256 },
-      this.scene
+      this.scene,
+      false // Don't generate mipmaps for text
     );
 
     const text = `-${this.enemyCount}`;
 
     const ctx = texture.getContext();
-    // Clear background first
-    ctx.clearRect(0, 0, 512, 256);
+    // Fill background with semi-transparent red for debugging
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Draw white text with black outline for better visibility
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 8;
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 140px Arial';
+    ctx.font = 'bold 160px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.strokeText(text, 256, 128);
     ctx.fillText(text, 256, 128);
 
     texture.update();
@@ -98,7 +105,9 @@ export class EnemyCrowd extends Obstacle {
     const textMaterial = new StandardMaterial('enemyTextMat', this.scene);
     textMaterial.diffuseTexture = texture;
     textMaterial.emissiveTexture = texture;
+    textMaterial.emissiveColor = new Color3(1, 1, 1);
     textMaterial.backFaceCulling = false;
+    textMaterial.transparencyMode = 2; // ALPHABLEND
     textPlane.material = textMaterial;
   }
 
