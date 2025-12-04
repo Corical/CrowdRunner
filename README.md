@@ -1,205 +1,183 @@
-# Crowd Runner Game
+# Crowd Runner Game 🏃‍♂️👥
 
-A 3D crowd runner game built with Babylon.js and TypeScript, inspired by "Count Masters". This is the basic foundation following SOLID principles.
+A 3D crowd runner game built with Babylon.js and TypeScript, inspired by "Count Masters". Control a crowd of stickmen, collect gates to multiply your numbers, and avoid enemy crowds!
 
-## What's Built So Far (Phase 1 - Foundation)
+![Game Preview](https://img.shields.io/badge/Status-In%20Development-yellow) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue) ![Babylon.js](https://img.shields.io/badge/Babylon.js-8.40.0-green)
 
-### Completed Features
-- ✅ Project setup with Vite + TypeScript
-- ✅ Babylon.js scene with 3D camera and lighting
-- ✅ 3-lane runner system (left, center, right)
-- ✅ Player representation (currently a blue cube, will be crowd later)
-- ✅ Smooth lane switching with easing animation
-- ✅ Keyboard controls (Arrow keys or A/D)
-- ✅ Touch/swipe controls for mobile
-- ✅ UI system (score, distance, game over)
-- ✅ Basic game loop and state management
-- ✅ SOLID architecture with interfaces and dependency injection
+## 🎮 Live Demo
 
-### Current Gameplay
-- Start with 5 crowd members (represented by cube size)
-- Use Arrow Keys or A/D to switch lanes
-- Swipe left/right on mobile devices
-- Distance counter tracks progress
-- Game currently runs infinitely (obstacles coming in Phase 2)
+Run locally with `npm run dev` and open http://localhost:3000
 
-## Project Structure
+## ✨ Features
 
-```
-crowdgame/
-├── docs/
-│   ├── GAME_DESIGN.md          # Complete game design document
-│   └── ARCHITECTURE.md         # Technical architecture details
-├── src/
-│   ├── core/
-│   │   ├── Config.ts           # Game constants and enums
-│   │   ├── Interfaces.ts       # Interface definitions (ISP)
-│   │   ├── SceneManager.ts     # Babylon.js scene management
-│   │   └── GameManager.ts      # Main game coordinator (Singleton)
-│   ├── entities/
-│   │   └── Player.ts           # Player crowd controller
-│   ├── systems/
-│   │   └── InputHandler.ts     # Keyboard/touch input
-│   ├── ui/
-│   │   └── UIManager.ts        # UI rendering and updates
-│   └── main.ts                 # Entry point
-├── public/
-│   └── index.html              # Game container with UI
-└── package.json
-```
+### Current (Phase 2)
+- ✅ **3D Stickman Crowds** - Actual stickman formations using instanced rendering
+- ✅ **Portal-Style Gates** - Glowing arch gates with pulsing effects
+  - Multiplication gates: x2, x5, x10, x100
+  - Addition gates: +20, +50, +100
+- ✅ **Enemy Crowd Formations** - Red stickman crowds with floating labels
+- ✅ **3-Lane Runner System** - Smooth lane switching with animations
+- ✅ **Speed Controls** - Adjust game speed (0.5x - 5.0x)
+- ✅ **Obstacle Frequency** - Control spawn rate from Very Low to Very High
+- ✅ **Input Queueing** - Rapid key presses for quick lane changes
+- ✅ **Touch/Swipe Controls** - Mobile-optimized controls
+- ✅ **60 FPS Performance** - Handles 100+ stickmen smoothly
 
-## SOLID Principles Applied
+## 🎯 How to Play
 
-### Single Responsibility Principle (SRP)
-Each class has one clear purpose:
-- `GameManager`: Game flow and state
-- `SceneManager`: 3D scene setup
-- `Player`: Player behavior
-- `InputHandler`: Input processing
-- `UIManager`: DOM manipulation
+1. **Start** with 5 stickmen
+2. **Move** left/right using:
+   - Arrow Keys or A/D (keyboard)
+   - Swipe left/right (touch)
+3. **Collect** blue/green gates to grow your crowd
+4. **Avoid** red enemy crowds
+5. **Survive** - Game over when crowd reaches 0
 
-### Open/Closed Principle (OCP)
-- Base classes designed for extension
-- `Player` can be extended for different player types
-- Ready for `Obstacle` base class to be extended
+## 🚀 Quick Start
 
-### Liskov Substitution Principle (LSP)
-- Interfaces ensure substitutability
-- Any `ISceneManager` implementation can replace `SceneManager`
+### Prerequisites
+- Node.js 18+ and npm
 
-### Interface Segregation Principle (ISP)
-- Small, focused interfaces:
-  - `IUpdatable` - for objects needing updates
-  - `ICollidable` - for collision detection
-  - `IDestroyable` - for cleanup
-
-### Dependency Inversion Principle (DIP)
-- `GameManager` depends on abstractions (`ISceneManager`, `IInputHandler`, etc.)
-- Easy to swap implementations for testing or features
-
-## Running the Game
-
-### Development Mode
+### Installation
 ```bash
+# Clone repository
+git clone https://github.com/Corical/CrowdRunner.git
+cd CrowdRunner
+
+# Install dependencies
+npm install
+
+# Start dev server
 npm run dev
 ```
-Then open http://localhost:3000
+
+Open http://localhost:3000 in your browser!
 
 ### Build for Production
 ```bash
 npm run build
-```
-
-### Preview Production Build
-```bash
 npm run preview
 ```
 
-## Controls
+## 🏗️ Architecture
 
-### Keyboard
-- `Arrow Left` or `A` - Move to left lane
-- `Arrow Right` or `D` - Move to right lane
+Built following **SOLID principles** for clean, maintainable code:
 
-### Touch/Mobile
-- Swipe left - Move to left lane
-- Swipe right - Move to right lane
-
-## What's Next (Phase 2 - Core Gameplay)
-
-The foundation is ready. Next phase will add:
-
-1. **Obstacle System**
-   - `Obstacle` base class (abstract)
-   - `Gate` class (multiplication/addition gates)
-   - `EnemyCrowd` class (red enemy obstacles)
-   - `ObstacleManager` for spawning
-
-2. **Collision Detection**
-   - `CollisionDetector` system
-   - Gate effects (multiply/add to crowd)
-   - Enemy collision (subtract from crowd)
-   - Game over when crowd reaches 0
-
-3. **Visual Improvements**
-   - Replace cube with actual crowd formation
-   - Gate meshes with numbers
-   - Enemy crowd visuals
-
-See `GAME_DESIGN.md` for the complete roadmap through Phase 5.
-
-## Architecture Highlights
-
-### Dependency Injection Ready
-```typescript
-// GameManager depends on interfaces, not implementations
-private sceneManager: ISceneManager;
-private inputHandler: IInputHandler;
-
-// Easy to swap for testing or new features
-this.sceneManager = new SceneManager();
+### Project Structure
+```
+src/
+├── core/               # Core game systems
+│   ├── GameManager.ts  # Main game coordinator (Singleton)
+│   ├── SceneManager.ts # Babylon.js scene management
+│   ├── Config.ts       # Game constants
+│   └── Interfaces.ts   # TypeScript interfaces (ISP)
+├── entities/           # Game entities
+│   ├── Player.ts       # Player crowd controller
+│   ├── Obstacle.ts     # Abstract base class (OCP)
+│   ├── Gate.ts         # Portal gates
+│   └── EnemyCrowd.ts   # Enemy obstacles
+├── systems/            # Game systems
+│   ├── CrowdFormation.ts    # Crowd arrangement & rendering
+│   ├── InputHandler.ts      # Input processing
+│   └── ObstacleManager.ts   # Obstacle spawning
+├── ui/
+│   └── UIManager.ts    # UI updates
+└── utils/
+    └── StickmanBuilder.ts   # Stickman mesh creation
 ```
 
-### Event-Driven (Ready for Observer Pattern)
-The architecture is designed to add an `EventManager` later for:
-- Score changes
-- Collisions
-- Game state changes
+### Design Patterns
+- **Singleton**: GameManager
+- **Abstract Factory**: ObstacleManager
+- **Template Method**: Obstacle base class
+- **Strategy**: Different collision behaviors
+- **Observer**: Ready for event system
 
-### Object Pooling Ready
-`ARCHITECTURE.md` includes designs for:
-- Obstacle pooling
-- Stickman model reuse
-- Performance optimization
+### Performance Optimizations
+- **Instanced Meshes**: 1 template, infinite copies
+- **Object Pooling Ready**: Architecture supports it
+- **Efficient Collision**: Distance-based calculations
+- **60 FPS Target**: Achieved with 100+ stickmen
 
-## Performance
+## 📚 Documentation
 
-Current implementation:
-- Runs at 60 FPS
-- Mobile-optimized touch controls
-- Minimal draw calls (will use instancing for crowds)
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical patterns and class hierarchy
+- **[GAME_DESIGN.md](GAME_DESIGN.md)** - Complete game design (5 phases)
+- **[CHANGELOG.md](CHANGELOG.md)** - Feature history
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Development guide
 
-## Development Notes
+## 🎨 Technologies
 
-### Adding New Features
-1. Create interface in `Interfaces.ts`
-2. Implement class following SRP
-3. Inject via `GameManager` (DIP)
-4. Update `Config.ts` for new constants
-
-### Testing
-Architecture supports unit testing:
-```typescript
-// Mock implementations of interfaces for testing
-class MockSceneManager implements ISceneManager {
-  // Test implementation
-}
-```
-
-## Technologies
-
-- **Babylon.js 8.40.0** - 3D rendering engine
-- **TypeScript 5.9.3** - Type safety and OOP
-- **Vite 6.4.1** - Fast dev server and bundling
+- **[Babylon.js](https://www.babylonjs.com/)** 8.40.0 - 3D rendering engine
+- **[TypeScript](https://www.typescriptlang.org/)** 5.9.3 - Type safety
+- **[Vite](https://vitejs.dev/)** 6.4.1 - Fast dev server & bundling
 - **ES2020** - Modern JavaScript features
 
-## Browser Support
+## 🗺️ Roadmap
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- Mobile browsers with WebGL support
+### Phase 3 (Next) - Visual Effects
+- [ ] Particle effects on gate collection
+- [ ] Screen shake on collisions
+- [ ] Number pop-ups (+50, x2, etc.)
+- [ ] Trail effects behind player
 
-## Documentation
+### Phase 4 - Audio & Polish
+- [ ] Background music
+- [ ] Sound effects (collect, hit, grow)
+- [ ] Better camera (zoom with crowd size)
+- [ ] Mobile optimization
 
-- `GAME_DESIGN.md` - Complete game design, features, and phases
-- `ARCHITECTURE.md` - Technical implementation details, patterns, and class diagrams
-- Code comments - JSDoc style documentation in all files
+### Phase 5 - Advanced Features
+- [ ] Progressive difficulty
+- [ ] Power-ups (shield, magnet)
+- [ ] Level system
+- [ ] High score tracking
+- [ ] Daily challenges
 
-## License
+See [GAME_DESIGN.md](GAME_DESIGN.md) for full roadmap.
 
-ISC
+## 🎮 Controls
+
+### Keyboard
+- `Arrow Left` or `A` - Move left
+- `Arrow Right` or `D` - Move right
+
+### Touch/Mobile
+- Swipe left - Move left lane
+- Swipe right - Move right lane
+
+### Game Settings
+- **Game Speed**: Slider (bottom-left) - 0.5x to 5.0x
+- **Obstacle Frequency**: Slider (bottom-left) - Very Low to Very High
+
+## 🤝 Contributing
+
+Contributions welcome! This project follows SOLID principles and clean code practices.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+ISC License - See LICENSE file for details
+
+## 🙏 Acknowledgments
+
+- Inspired by "Count Masters" mobile game
+- Built with [Babylon.js](https://www.babylonjs.com/) game engine
+- Reference images from Count Masters
+
+## 📞 Contact
+
+Created by [@Corical](https://github.com/Corical)
+
+Repository: [https://github.com/Corical/CrowdRunner](https://github.com/Corical/CrowdRunner)
 
 ---
 
-**Ready to continue?** Check `GAME_DESIGN.md` for Phase 2 tasks to implement next!
+**🤖 Generated with [Claude Code](https://claude.com/claude-code)**
+
+**⭐ Star this repo if you find it helpful!**
