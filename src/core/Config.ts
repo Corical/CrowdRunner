@@ -28,12 +28,12 @@ export const Config = {
   OBSTACLE_SPAWN_DISTANCE: 100, // distance ahead of player
   OBSTACLE_SPEED: 10,
   OBSTACLE_DESPAWN_DISTANCE: -20, // behind player
-  MIN_ENEMY_COUNT: 20,
-  MAX_ENEMY_COUNT: 100,
+  MIN_ENEMY_COUNT: 10,
+  MAX_ENEMY_COUNT: 50,
 
   // Gate settings
-  GATE_MULTIPLIERS: [2, 5, 10, 100],
-  GATE_ADDITIONS: [20, 50, 100],
+  GATE_MULTIPLIERS: [2, 3, 5, 10],
+  GATE_ADDITIONS: [5, 10, 15, 20],
 
   // Camera settings
   CAMERA_POSITION: new Vector3(0, 20, -25),

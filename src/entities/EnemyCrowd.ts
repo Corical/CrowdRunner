@@ -82,7 +82,7 @@ export class EnemyCrowd extends Obstacle {
       this.scene
     );
 
-    const text = `${this.enemyCount}`;
+    const text = `-${this.enemyCount}`;
 
     const ctx = texture.getContext();
     ctx.fillStyle = 'white';
