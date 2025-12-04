@@ -33,6 +33,13 @@ export class Gate extends Obstacle {
     this.gateType = gateType;
     this.value = value;
     this.glowParts = []; // Initialize after super()
+
+    // Create label after properties are set
+    const color =
+      this.gateType === GateType.MULTIPLY
+        ? Color3.FromHexString(Config.COLORS.GATE_MULTIPLY)
+        : Color3.FromHexString(Config.COLORS.GATE_ADD);
+    this.createLabel(this.mesh as any, color);
   }
 
   /**
@@ -118,10 +125,8 @@ export class Gate extends Obstacle {
     fillMaterial.alpha = 0.3;
     centerFill.material = fillMaterial;
 
-    // Add text label
-    this.createLabel(gateNode, color);
-
     // Store main mesh reference (we'll use the parent node)
+    // Label will be created in constructor after properties are set
     this.mesh = gateNode as any;
 
     // Store glow parts for animation

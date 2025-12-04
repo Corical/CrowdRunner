@@ -67,36 +67,38 @@ export class EnemyCrowd extends Obstacle {
     // Text plane
     const textPlane = MeshBuilder.CreatePlane(
       'enemyLabel',
-      { width: 1, height: 0.6 },
+      { width: 1.2, height: 0.7 },
       this.scene
     );
 
     textPlane.parent = this.mesh;
     textPlane.position.y = 2.5;
-    textPlane.position.z = 0.01; // Slightly in front
+    textPlane.position.z = 0.05; // Further in front to avoid z-fighting
     textPlane.billboardMode = 7; // Face camera
 
     const texture = new DynamicTexture(
       'enemyText',
-      { width: 256, height: 128 },
+      { width: 512, height: 256 },
       this.scene
     );
 
     const text = `-${this.enemyCount}`;
 
     const ctx = texture.getContext();
+    // Clear background first
+    ctx.clearRect(0, 0, 512, 256);
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 80px Arial';
+    ctx.font = 'bold 140px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, 128, 64);
+    ctx.fillText(text, 256, 128);
 
     texture.update();
 
     const textMaterial = new StandardMaterial('enemyTextMat', this.scene);
     textMaterial.diffuseTexture = texture;
     textMaterial.emissiveTexture = texture;
-    textMaterial.opacityTexture = texture;
+    textMaterial.backFaceCulling = false;
     textPlane.material = textMaterial;
   }
 
