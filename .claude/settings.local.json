@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)"
+    ]
+  },
+  "disabledMcpjsonServers": [
+    "mcpql"
+  ]
+}

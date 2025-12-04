@@ -1,0 +1,170 @@
+import { Scene, Vector3 } from '@babylonjs/core';
+import { IUpdatable } from '@/core/Interfaces';
+import { Config, ObstacleType, GateType, Lane } from '@/core/Config';
+import { Obstacle } from '@/entities/Obstacle';
+import { Gate } from '@/entities/Gate';
+import { EnemyCrowd } from '@/entities/EnemyCrowd';
+import { Player } from '@/entities/Player';
+
+/**
+ * ObstacleManager - Manages obstacle spawning and lifecycle
+ * Single Responsibility: Obstacle management
+ */
+export class ObstacleManager implements IUpdatable {
+  private scene: Scene;
+  private obstacles: Obstacle[] = [];
+  private spawnTimer: number = 0;
+  private spawnInterval: number = Config.OBSTACLE_SPAWN_INTERVAL;
+  private gameSpeed: number = Config.GAME_SPEED;
+
+  constructor(scene: Scene) {
+    this.scene = scene;
+  }
+
+  /**
+   * Update all obstacles and spawn new ones
+   */
+  public update(deltaTime: number, player: Player): void {
+    // Update spawn timer
+    this.spawnTimer += deltaTime;
+    if (
+      this.spawnTimer >= this.spawnInterval &&
+      this.obstacles.length < Config.MAX_OBSTACLES_ON_SCREEN
+    ) {
+      this.spawnRandomObstacle();
+      this.spawnTimer = 0;
+    }
+
+    // Update all obstacles
+    for (let i = this.obstacles.length - 1; i >= 0; i--) {
+      const obstacle = this.obstacles[i];
+      obstacle.update(deltaTime);
+
+      // Check collision with player
+      if (!obstacle.hasAlreadyCollided()) {
+        const playerPos = player.getPosition();
+        const playerRadius = player.getCollisionRadius();
+
+        if (obstacle.checkCollision(playerPos, playerRadius)) {
+          obstacle.onCollision(player);
+        }
+      }
+
+      // Remove obstacles that went past player
+      if (obstacle.shouldRemove()) {
+        obstacle.destroy();
+        this.obstacles.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Spawn a random obstacle
+   */
+  private spawnRandomObstacle(): void {
+    // Choose random lane
+    const laneValues = [Lane.LEFT, Lane.CENTER, Lane.RIGHT];
+    const randomLane = laneValues[Math.floor(Math.random() * laneValues.length)];
+    const laneX = this.getLaneXPosition(randomLane);
+
+    // Random obstacle type
+    const rand = Math.random();
+    let obstacle: Obstacle;
+
+    if (rand < 0.4) {
+      // 40% chance: Multiplication gate
+      obstacle = this.createMultiplyGate(laneX);
+    } else if (rand < 0.7) {
+      // 30% chance: Addition gate
+      obstacle = this.createAddGate(laneX);
+    } else {
+      // 30% chance: Enemy crowd
+      obstacle = this.createEnemyCrowd(laneX);
+    }
+
+    this.obstacles.push(obstacle);
+  }
+
+  /**
+   * Create multiplication gate
+   */
+  private createMultiplyGate(x: number): Gate {
+    const multipliers = Config.GATE_MULTIPLIERS;
+    const value = multipliers[Math.floor(Math.random() * multipliers.length)];
+    const position = new Vector3(x, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
+
+    return new Gate(this.scene, position, this.gameSpeed, GateType.MULTIPLY, value);
+  }
+
+  /**
+   * Create addition gate
+   */
+  private createAddGate(x: number): Gate {
+    const additions = Config.GATE_ADDITIONS;
+    const value = additions[Math.floor(Math.random() * additions.length)];
+    const position = new Vector3(x, 1.5, Config.OBSTACLE_SPAWN_DISTANCE);
+
+    return new Gate(this.scene, position, this.gameSpeed, GateType.ADD, value);
+  }
+
+  /**
+   * Create enemy crowd
+   */
+  private createEnemyCrowd(x: number): EnemyCrowd {
+    const count =
+      Math.floor(
+        Math.random() * (Config.MAX_ENEMY_COUNT - Config.MIN_ENEMY_COUNT)
+      ) + Config.MIN_ENEMY_COUNT;
+    const position = new Vector3(x, 0.75, Config.OBSTACLE_SPAWN_DISTANCE);
+
+    return new EnemyCrowd(this.scene, position, this.gameSpeed, count);
+  }
+
+  /**
+   * Get X position for a lane
+   */
+  private getLaneXPosition(lane: Lane): number {
+    switch (lane) {
+      case Lane.LEFT:
+        return Config.LANES.LEFT;
+      case Lane.CENTER:
+        return Config.LANES.CENTER;
+      case Lane.RIGHT:
+        return Config.LANES.RIGHT;
+    }
+  }
+
+  /**
+   * Set game speed (affects obstacle movement)
+   */
+  public setGameSpeed(speed: number): void {
+    this.gameSpeed = speed;
+    // Update existing obstacles
+    this.obstacles.forEach((obs) => {
+      (obs as any).speed = speed;
+    });
+  }
+
+  /**
+   * Set spawn interval (affects obstacle frequency)
+   */
+  public setSpawnInterval(interval: number): void {
+    this.spawnInterval = interval;
+  }
+
+  /**
+   * Clear all obstacles
+   */
+  public clearAll(): void {
+    this.obstacles.forEach((obs) => obs.destroy());
+    this.obstacles = [];
+    this.spawnTimer = 0;
+  }
+
+  /**
+   * Get obstacle count
+   */
+  public getObstacleCount(): number {
+    return this.obstacles.length;
+  }
+}

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4299e1">
+  <title>Crowd Runner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      width: 100%;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(to bottom, #4299e1, #90cdf4);
+    }
+
+    #renderCanvas {
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      display: block;
+    }
+
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #score-display {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: #3182ce;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #distance-display {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #distance-label {
+      font-size: 12px;
+      color: #666;
+    }
+
+    #distance-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    #start-screen, #game-over-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.5);
+      pointer-events: all;
+    }
+
+    .screen-content {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      max-width: 400px;
+      width: 90%;
+    }
+
+    h1 {
+      color: #3182ce;
+      margin-bottom: 16px;
+      font-size: 36px;
+    }
+
+    h2 {
+      color: #e53e3e;
+      margin-bottom: 16px;
+      font-size: 32px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 24px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #3182ce;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #2c5282;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #controls-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      pointer-events: all;
+      min-width: 200px;
+    }
+
+    .control-group {
+      margin-bottom: 12px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .control-value {
+      color: #3182ce;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e2e8f0;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3182ce;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3182ce;
+      cursor: pointer;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+
+  <div id="ui-overlay">
+    <div id="score-display">
+      <span>👥</span>
+      <span id="crowd-count">5</span>
+    </div>
+
+    <div id="distance-display">
+      <div id="distance-label">Distance</div>
+      <div id="distance-value">0m</div>
+    </div>
+
+    <div id="start-screen">
+      <div class="screen-content">
+        <h1>Crowd Runner</h1>
+        <p>Swipe Left/Right or Use Arrow Keys<br>Avoid obstacles and grow your crowd!</p>
+        <button id="start-button">Start Game</button>
+      </div>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+      <div class="screen-content">
+        <h2>Game Over!</h2>
+        <p>Final Score: <span id="final-score">0</span></p>
+        <p>Distance: <span id="final-distance">0</span>m</p>
+        <button id="restart-button">Play Again</button>
+      </div>
+    </div>
+
+    <div id="controls-panel">
+      <div class="control-group">
+        <div class="control-label">
+          <span>Game Speed</span>
+          <span class="control-value" id="speed-value">1.0x</span>
+        </div>
+        <input type="range" id="speed-slider" min="5" max="50" value="10" step="5">
+      </div>
+      <div class="control-group">
+        <div class="control-label">
+          <span>Obstacle Frequency</span>
+          <span class="control-value" id="frequency-value">Normal</span>
+        </div>
+        <input type="range" id="frequency-slider" min="10" max="40" value="25" step="5">
+      </div>
+    </div>
+  </div>
+
+  <div id="loading">Loading...</div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
