@@ -6,10 +6,18 @@ import { Player } from './Player';
  * Power-up types
  */
 export enum PowerUpType {
+  // Original power-ups
   SHIELD = 'shield',           // Protects from next enemy hit
   MAGNET = 'magnet',           // Auto-collect nearby gates
   SPEED_BOOST = 'speed_boost', // Temporary speed increase
-  MULTIPLIER = 'multiplier'    // Doubles next gate effect
+  MULTIPLIER = 'multiplier',   // Doubles next gate effect
+
+  // New strategic power-ups
+  VAMPIRE = 'vampire',         // Steal crowd from enemies instead of losing
+  GHOST = 'ghost',             // Pass through enemies without damage
+  REGEN = 'regen',             // Slowly gain crowd over time
+  TIME_SLOW = 'time_slow',     // Slow down all obstacles
+  FRENZY = 'frenzy'           // Double all gate values
 }
 
 /**
@@ -31,6 +39,7 @@ export class PowerUp extends Obstacle {
   private label: BABYLON.Mesh | null = null;
 
   private static readonly CONFIGS: Record<PowerUpType, PowerUpConfig> = {
+    // Original power-ups
     [PowerUpType.SHIELD]: {
       duration: 10,
       color: BABYLON.Color3.FromHexString('#60A5FA'), // Blue
@@ -50,6 +59,33 @@ export class PowerUp extends Obstacle {
       duration: 12,
       color: BABYLON.Color3.FromHexString('#8B5CF6'), // Purple
       icon: '✨'
+    },
+
+    // New strategic power-ups
+    [PowerUpType.VAMPIRE]: {
+      duration: 8,
+      color: BABYLON.Color3.FromHexString('#DC2626'), // Red
+      icon: '🧛'
+    },
+    [PowerUpType.GHOST]: {
+      duration: 5,
+      color: BABYLON.Color3.FromHexString('#E5E7EB'), // Ghost white
+      icon: '👻'
+    },
+    [PowerUpType.REGEN]: {
+      duration: 10,
+      color: BABYLON.Color3.FromHexString('#22C55E'), // Bright green
+      icon: '💚'
+    },
+    [PowerUpType.TIME_SLOW]: {
+      duration: 6,
+      color: BABYLON.Color3.FromHexString('#06B6D4'), // Cyan
+      icon: '⏰'
+    },
+    [PowerUpType.FRENZY]: {
+      duration: 8,
+      color: BABYLON.Color3.FromHexString('#F97316'), // Orange
+      icon: '🔥'
     }
   };
 
@@ -224,18 +260,18 @@ export class PowerUp extends Obstacle {
     this.mesh.rotation.y += this.rotationSpeed * deltaTime;
     this.mesh.rotation.x += this.rotationSpeed * 0.5 * deltaTime;
 
-    // Floating animation
-    this.floatOffset += deltaTime * 2;
-    this.mesh.position.y = this.position.y + Math.sin(this.floatOffset) * 0.3;
+    // Keep position fixed (no bouncing/floating)
+    this.mesh.position.y = this.position.y;
 
     // Update label position
     if (this.label) {
       this.label.position.x = this.mesh.position.x;
       this.label.position.z = this.mesh.position.z;
-      this.label.position.y = this.mesh.position.y + 2.5;
+      this.label.position.y = this.position.y + 2.5;
     }
 
-    // Pulse glow effect
+    // Subtle pulse glow effect
+    this.floatOffset += deltaTime * 2;
     if (this.mesh.getChildMeshes()[0]) {
       const glow = this.mesh.getChildMeshes()[0];
       const scale = 1 + Math.sin(this.floatOffset * 2) * 0.1;

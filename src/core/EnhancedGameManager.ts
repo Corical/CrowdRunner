@@ -242,6 +242,14 @@ export class EnhancedGameManager {
     this.powerUpManager.update(deltaTime);
     this.comboSystem.update(deltaTime);
 
+    // Apply regeneration power-up
+    if (this.powerUpManager.hasRegen()) {
+      const regenAmount = Math.floor(Config.POWER_UP_EFFECTS.REGEN_RATE_PER_SECOND * deltaTime);
+      if (regenAmount > 0) {
+        this.player.addCrowd(regenAmount);
+      }
+    }
+
     if (this.animationsEnabled) {
       this.cameraEffects.update(deltaTime);
       this.floatingText.update(deltaTime);
@@ -287,8 +295,19 @@ export class EnhancedGameManager {
     obstacles.forEach((obstacle: any) => {
       if (obstacle instanceof Gate && !obstacle.hasAlreadyCollided()) {
         if (obstacle.checkCollision(playerPos, playerRadius)) {
+          // Apply frenzy multiplier to gate value
+          const originalValue = (obstacle as any).value;
+          if (this.powerUpManager.hasFrenzy()) {
+            (obstacle as any).value = Math.floor(originalValue * Config.POWER_UP_EFFECTS.FRENZY_MULTIPLIER);
+          }
+
           // Call original collision handler
           obstacle.onCollision(this.player);
+
+          // Restore original value
+          if (this.powerUpManager.hasFrenzy()) {
+            (obstacle as any).value = originalValue;
+          }
 
           // Add to combo
           this.comboSystem.addToCombo();
@@ -337,6 +356,16 @@ export class EnhancedGameManager {
     obstacles.forEach((obstacle: any) => {
       if (obstacle instanceof EnemyCrowd && !obstacle.hasAlreadyCollided()) {
         if (obstacle.checkCollision(playerPos, playerRadius)) {
+          // Check for ghost mode (pass through enemies)
+          if (this.powerUpManager.hasGhost()) {
+            obstacle.hasCollided = true; // Mark as collided but don't damage
+            this.soundSystem.playSound(SoundType.POWER_UP);
+            if (this.animationsEnabled) {
+              this.floatingText.showPowerUpActivated('GHOST!', this.player.getPositionVector());
+            }
+            return;
+          }
+
           // Check for shield protection
           if (this.powerUpManager.hasShield()) {
             this.powerUpManager.consumeShield();
@@ -348,7 +377,22 @@ export class EnhancedGameManager {
             return;
           }
 
-          // Normal enemy collision
+          const enemyCount = (obstacle as any).enemyCount;
+
+          // Check for vampire mode (steal instead of lose)
+          if (this.powerUpManager.hasVampire()) {
+            const stolenCrowd = Math.floor(enemyCount * Config.POWER_UP_EFFECTS.VAMPIRE_STEAL_PERCENT);
+            this.player.addCrowd(stolenCrowd);
+            obstacle.hasCollided = true;
+            this.soundSystem.playSound(SoundType.GATE_COLLECT);
+            if (this.animationsEnabled) {
+              const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
+              this.floatingText.showGain(stolenCrowd, pos);
+            }
+            return;
+          }
+
+          // Normal enemy collision (lose crowd)
           obstacle.onCollision(this.player);
 
           // Reset combo on enemy hit
@@ -364,7 +408,6 @@ export class EnhancedGameManager {
             this.cameraEffects.shakeHeavy();
 
             // Show damage number
-            const enemyCount = (obstacle as any).enemyCount;
             this.floatingText.showLoss(enemyCount, new BABYLON.Vector3(pos.x, 2, pos.z));
           }
 
@@ -403,10 +446,17 @@ export class EnhancedGameManager {
    */
   private spawnPowerUp(): void {
     const types = [
+      // Original power-ups
       PowerUpType.SHIELD,
       PowerUpType.MAGNET,
       PowerUpType.SPEED_BOOST,
-      PowerUpType.MULTIPLIER
+      PowerUpType.MULTIPLIER,
+      // New strategic power-ups
+      PowerUpType.VAMPIRE,
+      PowerUpType.GHOST,
+      PowerUpType.REGEN,
+      PowerUpType.TIME_SLOW,
+      PowerUpType.FRENZY
     ];
 
     const randomType = types[Math.floor(Math.random() * types.length)];

@@ -1,5 +1,6 @@
 import { PowerUpType } from '../entities/PowerUp';
 import { IUpdatable, IDestroyable } from '../core/Interfaces';
+import { Config } from '../core/Config';
 
 /**
  * Active power-up state
@@ -99,17 +100,62 @@ export class PowerUpManager implements IUpdatable, IDestroyable {
   }
 
   /**
-   * Get speed multiplier based on active power-ups
+   * Check if vampire is active (steal from enemies)
    */
-  public getSpeedMultiplier(): number {
-    return this.hasSpeedBoost() ? 1.5 : 1.0;
+  public hasVampire(): boolean {
+    return this.isActive(PowerUpType.VAMPIRE);
   }
 
   /**
-   * Get gate effect multiplier
+   * Check if ghost is active (pass through enemies)
+   */
+  public hasGhost(): boolean {
+    return this.isActive(PowerUpType.GHOST);
+  }
+
+  /**
+   * Check if regeneration is active
+   */
+  public hasRegen(): boolean {
+    return this.isActive(PowerUpType.REGEN);
+  }
+
+  /**
+   * Check if time slow is active
+   */
+  public hasTimeSlow(): boolean {
+    return this.isActive(PowerUpType.TIME_SLOW);
+  }
+
+  /**
+   * Check if frenzy is active (double gate values)
+   */
+  public hasFrenzy(): boolean {
+    return this.isActive(PowerUpType.FRENZY);
+  }
+
+  /**
+   * Get speed multiplier based on active power-ups
+   */
+  public getSpeedMultiplier(): number {
+    let multiplier = 1.0;
+    if (this.hasSpeedBoost()) multiplier *= Config.POWER_UP_EFFECTS.SPEED_BOOST_MULTIPLIER;
+    if (this.hasTimeSlow()) multiplier *= Config.POWER_UP_EFFECTS.TIME_SLOW_MULTIPLIER;
+    return multiplier;
+  }
+
+  /**
+   * Get gate effect multiplier (for single-use effects like MULTIPLIER)
    */
   public getGateMultiplier(): number {
-    return this.hasMultiplier() ? 2.0 : 1.0;
+    return this.hasMultiplier() ? Config.POWER_UP_EFFECTS.GATE_MULTIPLIER : 1.0;
+  }
+
+  /**
+   * Get gate value multiplier (for duration effects like FRENZY)
+   */
+  public getGateValueMultiplier(): number {
+    return this.hasFrenzy() ? Config.POWER_UP_EFFECTS.FRENZY_MULTIPLIER : 1.0;
   }
 
   /**

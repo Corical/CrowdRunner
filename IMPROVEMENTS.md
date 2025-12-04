@@ -533,3 +533,124 @@ Shield active: Free reward! 🛡️
 
 **Commit**: `04bac33`
 
+
+---
+
+## ⚡ Power-Up System Expansion (December 2025)
+
+### 5 New Strategic Power-Ups
+
+Added creative power-ups with diverse gameplay mechanics, moving beyond simple buffs.
+
+#### New Power-Ups:
+
+1. **🧛 VAMPIRE** (8 seconds, Red)
+   - **Effect**: Steal 50% of enemy crowd instead of losing yours
+   - **Strategy**: Turn dangerous enemies into opportunities
+   - **Best use**: High enemy counts = massive gains
+   - **Config**: `VAMPIRE_STEAL_PERCENT` (0.5)
+
+2. **👻 GHOST** (5 seconds, White)
+   - **Effect**: Pass through enemies without taking damage
+   - **Strategy**: Short but powerful defensive option
+   - **Best use**: Navigate through trap scenarios safely
+   - **Implementation**: Marks enemies as collided without damage
+
+3. **💚 REGEN** (10 seconds, Bright Green)
+   - **Effect**: Gain +3 crowd members per second
+   - **Strategy**: Steady growth over time (+30 total)
+   - **Best use**: Safe periods between obstacles
+   - **Config**: `REGEN_RATE_PER_SECOND` (3)
+
+4. **⏰ TIME_SLOW** (6 seconds, Cyan)
+   - **Effect**: Slows all obstacles to 60% speed
+   - **Strategy**: Better reaction time for difficult sections
+   - **Best use**: High difficulty levels or dense obstacle patterns
+   - **Config**: `TIME_SLOW_MULTIPLIER` (0.6)
+
+5. **🔥 FRENZY** (8 seconds, Orange)
+   - **Effect**: Doubles ALL gate values (+20 → +40, +50 → +100)
+   - **Strategy**: Maximize growth during active period
+   - **Best use**: Stacks with trap gates for huge gains
+   - **Config**: `FRENZY_MULTIPLIER` (2.0)
+
+### Config-Based Power-Up System
+
+**Problem**: Hardcoded multipliers made future character building difficult.
+
+**Solution**: Centralized power-up effectiveness configuration ready for character profiles.
+
+#### Architecture:
+```typescript
+// Config.ts
+POWER_UP_EFFECTS: {
+  VAMPIRE_STEAL_PERCENT: 0.5,
+  REGEN_RATE_PER_SECOND: 3,
+  TIME_SLOW_MULTIPLIER: 0.6,
+  FRENZY_MULTIPLIER: 2.0,
+  SPEED_BOOST_MULTIPLIER: 1.5,
+  GATE_MULTIPLIER: 2.0,
+}
+```
+
+#### Benefits:
+- ✅ Single source of truth for all power-up values
+- ✅ Easy to balance by tweaking config
+- ✅ Ready for character profile system
+- ✅ Can load from JSON/database later
+- ✅ Supports character skill trees and stat modifiers
+
+#### Future Character System Ready:
+```typescript
+// Future implementation example:
+class CharacterProfile {
+  name: string;
+  powerUpEffects: PowerUpEffects;  // Override config values
+  passiveAbilities: Ability[];
+  stats: {
+    evasionChance: number;  // Future: dodge enemies
+    criticalHitChance: number;
+    luckModifier: number;
+  };
+}
+```
+
+### Quality of Life Improvements
+
+**Removed Bouncing Animation**: Power-ups now stay grounded instead of floating up and down
+- Cleaner visual appearance
+- Easier to judge exact position
+- Less visual distraction
+
+### Power-Up Synergies
+
+**Strategic Combinations**:
+- **Ghost + Trap Gates**: Safely collect gates behind enemies
+- **Vampire + High Enemy Count**: Turn -50 into +25
+- **Frenzy + Trap Gates**: Gates worth +100 behind enemies
+- **Time Slow + Dense Patterns**: Navigate complex obstacles
+- **Regen + Long Survival**: Steady passive growth
+
+### Balance Tuning
+
+**Total Power-Ups**: 9 (4 original + 5 new)
+**Spawn Distribution**: Equal chance for all types
+**Spawn Frequency**: Based on difficulty (15% → 10% at max level)
+
+### Technical Implementation
+
+**Files Modified**:
+- `src/entities/PowerUp.ts` (5 new types, removed float animation)
+- `src/systems/PowerUpManager.ts` (config-based system, new helper methods)
+- `src/core/EnhancedGameManager.ts` (vampire/ghost/regen/time_slow/frenzy logic)
+- `src/core/Config.ts` (POWER_UP_EFFECTS configuration)
+
+**Key Features**:
+- Power-up priority system (Ghost → Shield → Vampire → Normal)
+- Config-driven effectiveness values
+- Proper state management for time-based effects
+- Visual feedback for all power-up types (when animations enabled)
+
+### Commits
+- To be committed: Power-up expansion and config system
+

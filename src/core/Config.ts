@@ -17,6 +17,16 @@ export const Config = {
   // Difficulty/Strategy settings
   TRAP_SPAWN_CHANCE: 0.3, // 30% chance to spawn a good gate behind an enemy (risk/reward)
 
+  // Power-up effectiveness (ready for character profile system)
+  POWER_UP_EFFECTS: {
+    VAMPIRE_STEAL_PERCENT: 0.5,     // Steal 50% of enemy crowd
+    REGEN_RATE_PER_SECOND: 3,       // Gain 3 crowd per second
+    TIME_SLOW_MULTIPLIER: 0.6,      // Slow to 60% speed
+    FRENZY_MULTIPLIER: 2.0,         // Double gate values
+    SPEED_BOOST_MULTIPLIER: 1.5,    // 1.5x speed
+    GATE_MULTIPLIER: 2.0,           // Double next gate effect (MULTIPLIER power-up)
+  } as const,
+
   // Lane positions
   LANES: {
     LEFT: -5,
