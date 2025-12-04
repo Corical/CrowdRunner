@@ -62,7 +62,7 @@ export class UIManager implements IUIManager {
     // Setup slider event listeners
     this.speedSlider.addEventListener('input', () => {
       const speed = parseFloat(this.speedSlider.value);
-      this.speedValue.textContent = `${(speed / 10).toFixed(1)}x`;
+      this.speedValue.textContent = `${speed.toFixed(1)}x`;
       if (this.speedChangeCallback) {
         this.speedChangeCallback(speed);
       }

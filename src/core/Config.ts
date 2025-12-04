@@ -6,7 +6,7 @@ import { Vector3 } from '@babylonjs/core';
  */
 export const Config = {
   // Game settings
-  INITIAL_CROWD_COUNT: 5,
+  INITIAL_CROWD_COUNT: 20, // Increased for better starting experience
   GAME_SPEED: 10, // units per second
   LANE_WIDTH: 5,
   ROAD_WIDTH: 15,
@@ -35,8 +35,8 @@ export const Config = {
   MAX_ENEMY_COUNT: 50,
 
   // Gate settings
-  GATE_MULTIPLIERS: [2, 3, 5, 10],
-  GATE_ADDITIONS: [5, 10, 15, 20],
+  GATE_MULTIPLIERS: [2, 3, 5, 10], // Not used (multiplication disabled)
+  GATE_ADDITIONS: [10, 20, 30, 50], // Increased for addition-only gameplay
 
   // Camera settings
   CAMERA_POSITION: new Vector3(0, 20, -25),

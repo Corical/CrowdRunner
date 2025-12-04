@@ -67,15 +67,12 @@ export class ObstacleManager implements IUpdatable {
     const randomLane = laneValues[Math.floor(Math.random() * laneValues.length)];
     const laneX = this.getLaneXPosition(randomLane);
 
-    // Random obstacle type
+    // Random obstacle type (multiplication disabled to prevent exponential growth)
     const rand = Math.random();
     let obstacle: Obstacle;
 
-    if (rand < 0.4) {
-      // 40% chance: Multiplication gate
-      obstacle = this.createMultiplyGate(laneX, randomLane);
-    } else if (rand < 0.7) {
-      // 30% chance: Addition gate
+    if (rand < 0.7) {
+      // 70% chance: Addition gate
       obstacle = this.createAddGate(laneX, randomLane);
     } else {
       // 30% chance: Enemy crowd
