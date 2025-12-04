@@ -135,16 +135,6 @@ export class ObstacleManager implements IUpdatable {
   }
 
   /**
-   * Set game speed (affects obstacle movement)
-   */
-  public setGameSpeed(speed: number): void {
-    // Update existing obstacles
-    this.obstacles.forEach((obs) => {
-      (obs as any).speed = speed;
-    });
-  }
-
-  /**
    * Set spawn interval (affects obstacle frequency)
    */
   public setSpawnInterval(interval: number): void {

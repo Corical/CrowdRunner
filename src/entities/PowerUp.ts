@@ -61,6 +61,11 @@ export class PowerUp extends Obstacle {
   ) {
     super(scene, position, lane);
     this.powerUpType = powerUpType;
+    // Recreate mesh with proper power-up type now that it's set
+    if (this.mesh) {
+      this.mesh.dispose();
+    }
+    this.createMesh();
     this.createLabel();
   }
 
@@ -69,6 +74,7 @@ export class PowerUp extends Obstacle {
    */
   protected createMesh(): void {
     const config = PowerUp.CONFIGS[this.powerUpType];
+    if (!config) return; // Guard against undefined type
 
     // Create main cube
     const cube = BABYLON.MeshBuilder.CreateBox(

@@ -14,16 +14,14 @@ export abstract class Obstacle
   protected position: Vector3;
   protected mesh!: Mesh;
   protected scene: Scene;
-  protected speed: number;
   protected hasCollided: boolean = false;
   protected shouldDestroy: boolean = false;
   protected lane: number;
 
-  constructor(scene: Scene, position: Vector3, lane: number, speed?: number) {
+  constructor(scene: Scene, position: Vector3, lane: number) {
     this.scene = scene;
     this.position = position.clone();
     this.lane = lane;
-    this.speed = speed ?? Config.OBSTACLE_SPEED;
     this.createMesh();
   }
 
@@ -41,10 +39,12 @@ export abstract class Obstacle
 
   /**
    * Update obstacle position (move towards player)
+   * Speed is now controlled by deltaTime passed from the game manager
    */
   public update(deltaTime: number): void {
     // Move obstacle towards player (negative Z direction)
-    this.position.z -= this.speed * deltaTime;
+    // Speed is Config.OBSTACLE_SPEED, but effective speed is controlled by deltaTime scaling
+    this.position.z -= Config.OBSTACLE_SPEED * deltaTime;
     this.mesh.position.z = this.position.z;
   }
 

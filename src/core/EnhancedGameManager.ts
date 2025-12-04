@@ -1,5 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
-import { GameState } from './Config';
+import { Config, GameState } from './Config';
 import { ISceneManager, IInputHandler, IUIManager } from './Interfaces';
 import { SceneManager } from './SceneManager';
 import { InputHandler } from '@/systems/InputHandler';
@@ -51,6 +51,12 @@ export class EnhancedGameManager {
 
   // Power-ups on field
   private activePowerUps: PowerUp[] = [];
+
+  // Feature flags
+  private animationsEnabled: boolean = false;
+
+  // Manual speed control (from UI slider)
+  private manualSpeedMultiplier: number = 1.0;
 
   private constructor() {}
 
@@ -107,11 +113,14 @@ export class EnhancedGameManager {
     // Create player
     this.player = new Player(scene);
 
+    // Helper for checking if fancy animations are enabled
+    this.animationsEnabled = Config.ENABLE_FANCY_ANIMATIONS;
+
     // Setup UI callbacks
     this.uiManager.onStartGame(() => this.startGame());
     this.uiManager.onRestartGame(() => this.startGame());
     this.uiManager.onSpeedChange?.((speed: number) => {
-      this.obstacleManager.setGameSpeed(speed);
+      this.manualSpeedMultiplier = speed;
     });
     this.uiManager.onFrequencyChange?.((interval: number) => {
       this.obstacleManager.setSpawnInterval(interval);
@@ -148,10 +157,12 @@ export class EnhancedGameManager {
     this.comboSystem.resetCombo();
     this.difficultySystem.reset();
     this.progressionSystem.startNewGame();
-    this.cameraEffects.reset();
 
-    // Start effects
-    this.particleSystem.createTrailEffect(this.player.getPositionVector());
+    if (this.animationsEnabled) {
+      this.cameraEffects.reset();
+      // Start effects
+      this.particleSystem.createTrailEffect(this.player.getPositionVector());
+    }
     this.soundSystem.playBackgroundMusic();
 
     // Update UI
@@ -187,8 +198,13 @@ export class EnhancedGameManager {
    * Update all game systems
    */
   private update(deltaTime: number): void {
-    // Apply power-up speed multiplier
-    const speedMultiplier = this.powerUpManager.getSpeedMultiplier();
+    // Combine all speed multipliers:
+    // - Manual (UI slider)
+    // - Difficulty (progression-based)
+    // - Power-up (temporary boosts)
+    const difficultySpeed = this.difficultySystem.getSpeedMultiplier();
+    const powerUpSpeed = this.powerUpManager.getSpeedMultiplier();
+    const speedMultiplier = this.manualSpeedMultiplier * difficultySpeed * powerUpSpeed;
     const adjustedDelta = deltaTime * speedMultiplier;
 
     // Get player input
@@ -200,8 +216,10 @@ export class EnhancedGameManager {
     // Update player
     this.player.update(adjustedDelta);
 
-    // Update particle trail to follow player
-    this.particleSystem.updateTrailPosition(this.player.getPositionVector());
+    if (this.animationsEnabled) {
+      // Update particle trail to follow player
+      this.particleSystem.updateTrailPosition(this.player.getPositionVector());
+    }
 
     // Update obstacles with difficulty-based spawn interval
     const difficultyInterval = this.difficultySystem.getObstacleInterval();
@@ -223,9 +241,12 @@ export class EnhancedGameManager {
     // Update all systems
     this.powerUpManager.update(deltaTime);
     this.comboSystem.update(deltaTime);
-    this.cameraEffects.update(deltaTime);
-    this.floatingText.update(deltaTime);
-    this.particleSystem.update(deltaTime);
+
+    if (this.animationsEnabled) {
+      this.cameraEffects.update(deltaTime);
+      this.floatingText.update(deltaTime);
+      this.particleSystem.update(deltaTime);
+    }
 
     // Update distance and difficulty
     const distanceGain = adjustedDelta * 10;
@@ -233,8 +254,10 @@ export class EnhancedGameManager {
     this.timePlayed += deltaTime;
     this.difficultySystem.updateDistance(this.distance);
 
-    // Update camera FOV based on crowd size
-    this.cameraEffects.adjustForCrowdSize(this.player.getCrowdCount(), 500);
+    if (this.animationsEnabled) {
+      // Update camera FOV based on crowd size
+      this.cameraEffects.adjustForCrowdSize(this.player.getCrowdCount(), 500);
+    }
 
     // Update progression stats
     this.progressionSystem.updateStats({
@@ -270,24 +293,28 @@ export class EnhancedGameManager {
           // Add to combo
           this.comboSystem.addToCombo();
 
-          // Visual and audio feedback
-          const gateColor = (obstacle as any).gateType === 0
-            ? BABYLON.Color3.Blue()
-            : BABYLON.Color3.Green();
-          this.particleSystem.createGateCollectEffect(obstacle.getPosition() as any, gateColor);
+          // Audio feedback
           this.soundSystem.playSound(SoundType.GATE_COLLECT);
-          this.cameraEffects.shakeLight();
-          this.cameraEffects.zoomIn(0.9);
 
-          // Show floating text
-          const gateValue = (obstacle as any).value;
-          const gateType = (obstacle as any).gateType;
-          const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
+          if (this.animationsEnabled) {
+            // Visual feedback
+            const gateColor = (obstacle as any).gateType === 0
+              ? BABYLON.Color3.Blue()
+              : BABYLON.Color3.Green();
+            this.particleSystem.createGateCollectEffect(obstacle.getPosition() as any, gateColor);
+            this.cameraEffects.shakeLight();
+            this.cameraEffects.zoomIn(0.9);
 
-          if (gateType === 0) { // Multiply
-            this.floatingText.showMultiplier(gateValue, pos);
-          } else { // Add
-            this.floatingText.showGain(gateValue, pos);
+            // Show floating text
+            const gateValue = (obstacle as any).value;
+            const gateType = (obstacle as any).gateType;
+            const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
+
+            if (gateType === 0) { // Multiply
+              this.floatingText.showMultiplier(gateValue, pos);
+            } else { // Add
+              this.floatingText.showGain(gateValue, pos);
+            }
           }
 
           // Update stats
@@ -314,7 +341,9 @@ export class EnhancedGameManager {
           if (this.powerUpManager.hasShield()) {
             this.powerUpManager.consumeShield();
             this.soundSystem.playSound(SoundType.POWER_UP);
-            this.floatingText.showPowerUpActivated('SHIELD SAVED!', this.player.getPositionVector());
+            if (this.animationsEnabled) {
+              this.floatingText.showPowerUpActivated('SHIELD SAVED!', this.player.getPositionVector());
+            }
             obstacle.destroy();
             return;
           }
@@ -325,15 +354,19 @@ export class EnhancedGameManager {
           // Reset combo on enemy hit
           this.comboSystem.resetCombo();
 
-          // Visual and audio feedback
-          const pos = obstacle.getPosition() as any;
-          this.particleSystem.createEnemyHitEffect(new BABYLON.Vector3(pos.x, 1, pos.z));
+          // Audio feedback
           this.soundSystem.playSound(SoundType.ENEMY_HIT);
-          this.cameraEffects.shakeHeavy();
 
-          // Show damage number
-          const enemyCount = (obstacle as any).enemyCount;
-          this.floatingText.showLoss(enemyCount, new BABYLON.Vector3(pos.x, 2, pos.z));
+          if (this.animationsEnabled) {
+            // Visual feedback
+            const pos = obstacle.getPosition() as any;
+            this.particleSystem.createEnemyHitEffect(new BABYLON.Vector3(pos.x, 1, pos.z));
+            this.cameraEffects.shakeHeavy();
+
+            // Show damage number
+            const enemyCount = (obstacle as any).enemyCount;
+            this.floatingText.showLoss(enemyCount, new BABYLON.Vector3(pos.x, 2, pos.z));
+          }
 
           // Update stats
           this.progressionSystem.updateStats({
@@ -399,13 +432,17 @@ export class EnhancedGameManager {
         // Activate power-up
         this.powerUpManager.activatePowerUp(powerUp.getPowerUpType(), powerUp.getDuration());
 
-        // Visual feedback
-        this.particleSystem.createGateCollectEffect(
-          new BABYLON.Vector3(playerPos.x, 1, playerPos.z),
-          powerUp.getColor()
-        );
+        // Audio feedback
         this.soundSystem.playSound(SoundType.POWER_UP);
-        this.cameraEffects.zoomIn(0.85);
+
+        if (this.animationsEnabled) {
+          // Visual feedback
+          this.particleSystem.createGateCollectEffect(
+            new BABYLON.Vector3(playerPos.x, 1, playerPos.z),
+            powerUp.getColor()
+          );
+          this.cameraEffects.zoomIn(0.85);
+        }
 
         // Update stats
         this.progressionSystem.updateStats({
@@ -420,9 +457,11 @@ export class EnhancedGameManager {
    */
   private onPowerUpActivated(type: PowerUpType, duration: number): void {
     console.log(`⚡ Power-up activated: ${type} for ${duration}s`);
-    const pos = this.player.getPositionVector();
-    pos.y += 2;
-    this.floatingText.showPowerUpActivated(type.toUpperCase(), pos);
+    if (this.animationsEnabled) {
+      const pos = this.player.getPositionVector();
+      pos.y += 2;
+      this.floatingText.showPowerUpActivated(type.toUpperCase(), pos);
+    }
   }
 
   /**
@@ -439,11 +478,13 @@ export class EnhancedGameManager {
     console.log(`🔥 Combo: ${combo}x (${multiplier}x multiplier)`);
 
     if (combo >= 5) {
-      const tier = this.comboSystem.getComboTier();
-      const pos = this.player.getPositionVector();
-      pos.y += 3;
-      this.floatingText.showCombo(combo, tier, pos);
       this.soundSystem.playSound(SoundType.COMBO);
+      if (this.animationsEnabled) {
+        const tier = this.comboSystem.getComboTier();
+        const pos = this.player.getPositionVector();
+        pos.y += 3;
+        this.floatingText.showCombo(combo, tier, pos);
+      }
     }
   }
 
@@ -467,13 +508,15 @@ export class EnhancedGameManager {
    */
   private onLevelUp(level: number): void {
     console.log(`📈 Level up! Now level ${level}`);
-    const difficultyName = this.difficultySystem.getDifficultyName();
-    const pos = this.player.getPositionVector();
-    pos.y += 4;
-    this.floatingText.showMilestone(`LEVEL ${level} - ${difficultyName}`, pos);
     this.soundSystem.playSound(SoundType.MILESTONE);
-    this.particleSystem.createCelebrationEffect(pos);
-    this.cameraEffects.shake(0.4, 0.4);
+    if (this.animationsEnabled) {
+      const difficultyName = this.difficultySystem.getDifficultyName();
+      const pos = this.player.getPositionVector();
+      pos.y += 4;
+      this.floatingText.showMilestone(`LEVEL ${level} - ${difficultyName}`, pos);
+      this.particleSystem.createCelebrationEffect(pos);
+      this.cameraEffects.shake(0.4, 0.4);
+    }
   }
 
   /**
@@ -483,11 +526,13 @@ export class EnhancedGameManager {
     const info = this.progressionSystem.getMilestoneInfo(milestone);
     console.log(`🎉 Milestone unlocked: ${info.title}`);
 
-    const pos = this.player.getPositionVector();
-    pos.y += 3;
-    this.floatingText.showMilestone(info.title, pos);
     this.soundSystem.playSound(SoundType.MILESTONE);
-    this.particleSystem.createCelebrationEffect(pos);
+    if (this.animationsEnabled) {
+      const pos = this.player.getPositionVector();
+      pos.y += 3;
+      this.floatingText.showMilestone(info.title, pos);
+      this.particleSystem.createCelebrationEffect(pos);
+    }
   }
 
   /**
@@ -497,14 +542,16 @@ export class EnhancedGameManager {
     console.log('💀 Game over!');
     this.gameState = GameState.GAME_OVER;
 
-    // Stop effects
-    this.particleSystem.stopTrail();
+    // Stop effects and play sound
     this.soundSystem.stopBackgroundMusic();
     this.soundSystem.playSound(SoundType.GAME_OVER);
 
-    // Camera effects
-    this.cameraEffects.shakeHeavy();
-    this.cameraEffects.zoomOut(1.3);
+    if (this.animationsEnabled) {
+      this.particleSystem.stopTrail();
+      // Camera effects
+      this.cameraEffects.shakeHeavy();
+      this.cameraEffects.zoomOut(1.3);
+    }
 
     // Save progression
     const { score, isNewHighScore } = this.progressionSystem.endGame();
@@ -513,7 +560,7 @@ export class EnhancedGameManager {
     this.uiManager.showGameOver(score, this.distance);
 
     // Celebration if new high score
-    if (isNewHighScore) {
+    if (isNewHighScore && this.animationsEnabled) {
       const pos = this.player.getPositionVector();
       pos.y += 5;
       this.particleSystem.createCelebrationEffect(pos);

@@ -11,6 +11,9 @@ export const Config = {
   LANE_WIDTH: 5,
   ROAD_WIDTH: 15,
 
+  // Feature flags
+  ENABLE_FANCY_ANIMATIONS: false, // Disable floating text, particles, screen shake, etc.
+
   // Lane positions
   LANES: {
     LEFT: -5,
