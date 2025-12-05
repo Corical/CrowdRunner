@@ -211,6 +211,127 @@
       cursor: pointer;
       border: none;
     }
+
+    /* Debug Panel Styles */
+    #debug-panel {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      pointer-events: all;
+      max-width: 280px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #debug-panel.collapsed .debug-content {
+      display: none;
+    }
+
+    .debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .debug-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #fbbf24;
+    }
+
+    .debug-toggle-btn {
+      background: transparent;
+      border: 1px solid #fbbf24;
+      color: #fbbf24;
+      padding: 2px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .debug-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .debug-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 8px;
+    }
+
+    .debug-section-title {
+      font-weight: bold;
+      color: #9ca3af;
+      font-size: 11px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .debug-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .debug-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .debug-checkbox label {
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .debug-fps {
+      background: rgba(251, 191, 36, 0.2);
+      padding: 6px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: bold;
+      color: #fbbf24;
+    }
+
+    .debug-warning {
+      background: rgba(239, 68, 68, 0.2);
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: #fca5a5;
+      margin-top: 4px;
+    }
+
+    .debug-restart-btn {
+      width: 100%;
+      background: #3182ce;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .debug-restart-btn:hover {
+      background: #2c5282;
+    }
+
+    .debug-restart-btn:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 <body>
@@ -225,6 +346,73 @@
     <div id="distance-display">
       <div id="distance-label">Distance</div>
       <div id="distance-value">0m</div>
+    </div>
+
+    <div id="debug-panel">
+      <div class="debug-header" onclick="document.getElementById('debug-panel').classList.toggle('collapsed')">
+        <span class="debug-title">🐛 Debug Panel</span>
+        <button class="debug-toggle-btn" onclick="event.stopPropagation()">▼</button>
+      </div>
+      <div class="debug-content">
+        <div class="debug-fps">FPS: <span id="debug-fps">60</span></div>
+
+        <div class="debug-section">
+          <div class="debug-section-title">Testing</div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-god-mode">
+            <label for="debug-god-mode">🛡️ God Mode (No Damage)</label>
+          </div>
+        </div>
+
+        <div class="debug-section">
+          <div class="debug-section-title">Performance</div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-detailed-models" checked>
+            <label for="debug-detailed-models">Detailed Models (15 parts)</label>
+          </div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-floating-text" checked>
+            <label for="debug-floating-text">Floating Text (±numbers)</label>
+          </div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-animations" checked>
+            <label for="debug-animations">Fancy Animations</label>
+          </div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-sound" checked>
+            <label for="debug-sound">Sound Effects</label>
+          </div>
+        </div>
+
+        <div class="debug-section">
+          <div class="debug-section-title">Dynamic Systems</div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-random-events" checked>
+            <label for="debug-random-events">Random Events</label>
+          </div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-momentum" checked>
+            <label for="debug-momentum">Momentum System</label>
+          </div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-patterns" checked>
+            <label for="debug-patterns">Obstacle Patterns</label>
+          </div>
+          <div class="debug-checkbox">
+            <input type="checkbox" id="debug-adaptive" checked>
+            <label for="debug-adaptive">Adaptive Difficulty</label>
+          </div>
+        </div>
+
+        <div class="debug-warning">
+          ⚠️ Most changes require restart<br>
+          (God Mode works instantly!)
+        </div>
+
+        <button class="debug-restart-btn" id="debug-restart-button">
+          🔄 Restart Game Now
+        </button>
+      </div>
     </div>
 
     <div id="start-screen">

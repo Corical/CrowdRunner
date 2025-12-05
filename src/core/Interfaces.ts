@@ -56,6 +56,7 @@ export interface IUIManager {
   initialize(): void;
   updateCrowdCount(count: number): void;
   updateDistance(distance: number): void;
+  updateFPS(): void;
   showStartScreen(): void;
   hideStartScreen(): void;
   showGameOver(score: number, distance: number): void;

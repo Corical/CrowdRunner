@@ -386,9 +386,17 @@ export class EnhancedGameManager {
     // Update UI
     this.uiManager.updateCrowdCount(this.player.getCrowdCount());
     this.uiManager.updateDistance(this.distance);
+    this.uiManager.updateFPS();
 
     // Check game over condition (with second chance)
     if (this.player.getCrowdCount() <= 0) {
+      // God mode - keep player alive!
+      if (Config.GOD_MODE) {
+        console.log('🛡️ God mode prevented game over! Restoring crowd to 1');
+        this.player.addToCrowd(1); // Restore to at least 1
+        return;
+      }
+
       // Try second chance
       if (this.comebackSystem && this.comebackSystem.checkSecondChance(this.player.getCrowdCount())) {
         // Second chance triggered - player saved!
@@ -456,19 +464,13 @@ export class EnhancedGameManager {
           }
 
           // Audio feedback
-          this.soundSystem.playSound(SoundType.GATE_COLLECT);
+          if (Config.ENABLE_SOUND) {
+            this.soundSystem.playSound(SoundType.GATE_COLLECT);
+          }
 
-          if (this.animationsEnabled) {
-            // Visual feedback
-            const gateColor = (obstacle as any).gateType === 0
-              ? BABYLON.Color3.Blue()
-              : BABYLON.Color3.Green();
-            this.particleSystem.createGateCollectEffect(obstacle.getPosition() as any, gateColor);
-            this.cameraEffects.shakeLight();
-            this.cameraEffects.zoomIn(0.9);
-
-            // Show floating text
-            const gateValue = (obstacle as any).value;
+          // CRITICAL: Show gain numbers if floating text enabled
+          if (Config.ENABLE_FLOATING_TEXT) {
+            // Use the already-computed gateValue (with all multipliers applied)
             const gateType = (obstacle as any).gateType;
             const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
 
@@ -477,6 +479,16 @@ export class EnhancedGameManager {
             } else { // Add
               this.floatingText.showGain(gateValue, pos);
             }
+          }
+
+          if (this.animationsEnabled) {
+            // Additional visual feedback (particles, camera effects)
+            const gateColor = (obstacle as any).gateType === 0
+              ? BABYLON.Color3.Blue()
+              : BABYLON.Color3.Green();
+            this.particleSystem.createGateCollectEffect(obstacle.getPosition() as any, gateColor);
+            this.cameraEffects.shakeLight();
+            this.cameraEffects.zoomIn(0.9);
           }
 
           // Update stats
@@ -499,11 +511,26 @@ export class EnhancedGameManager {
     obstacles.forEach((obstacle: any) => {
       if (obstacle instanceof EnemyCrowd && !obstacle.hasAlreadyCollided()) {
         if (obstacle.checkCollision(playerPos, playerRadius)) {
+          // FIRST: Check for god mode (no damage at all!)
+          console.log('🔍 Enemy collision detected. God mode status:', Config.GOD_MODE);
+          if (Config.GOD_MODE) {
+            (obstacle as any).hasCollided = true;
+            obstacle.destroy();
+            if (Config.ENABLE_FLOATING_TEXT) {
+              const pos = obstacle.getPosition() as any;
+              this.floatingText.showPowerUpActivated('GOD MODE!', new BABYLON.Vector3(pos.x, 2, pos.z));
+            }
+            console.log('🛡️ God mode blocked damage!');
+            return;
+          }
+
           // Check for ghost mode (pass through enemies)
           if (this.powerUpManager.hasGhost()) {
             (obstacle as any).hasCollided = true; // Mark as collided but don't damage
-            this.soundSystem.playSound(SoundType.POWER_UP);
-            if (this.animationsEnabled) {
+            if (Config.ENABLE_SOUND) {
+              this.soundSystem.playSound(SoundType.POWER_UP);
+            }
+            if (Config.ENABLE_FLOATING_TEXT) {
               this.floatingText.showPowerUpActivated('GHOST!', this.player.getPositionVector());
             }
             return;
@@ -512,8 +539,10 @@ export class EnhancedGameManager {
           // Check for shield protection
           if (this.powerUpManager.hasShield()) {
             this.powerUpManager.consumeShield();
-            this.soundSystem.playSound(SoundType.POWER_UP);
-            if (this.animationsEnabled) {
+            if (Config.ENABLE_SOUND) {
+              this.soundSystem.playSound(SoundType.POWER_UP);
+            }
+            if (Config.ENABLE_FLOATING_TEXT) {
               this.floatingText.showPowerUpActivated('SHIELD SAVED!', this.player.getPositionVector());
             }
             obstacle.destroy();
@@ -527,8 +556,10 @@ export class EnhancedGameManager {
             const stolenCrowd = Math.floor(enemyCount * Config.POWER_UP_EFFECTS.VAMPIRE_STEAL_PERCENT);
             this.player.addToCrowd(stolenCrowd);
             (obstacle as any).hasCollided = true;
-            this.soundSystem.playSound(SoundType.GATE_COLLECT);
-            if (this.animationsEnabled) {
+            if (Config.ENABLE_SOUND) {
+              this.soundSystem.playSound(SoundType.GATE_COLLECT);
+            }
+            if (Config.ENABLE_FLOATING_TEXT) {
               const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
               this.floatingText.showGain(stolenCrowd, pos);
             }
@@ -558,16 +589,22 @@ export class EnhancedGameManager {
           }
 
           // Audio feedback
-          this.soundSystem.playSound(SoundType.ENEMY_HIT);
+          if (Config.ENABLE_SOUND) {
+            this.soundSystem.playSound(SoundType.ENEMY_HIT);
+          }
+
+          // Get position for feedback effects
+          const pos = obstacle.getPosition() as any;
+
+          // CRITICAL: Show damage numbers if floating text enabled
+          if (Config.ENABLE_FLOATING_TEXT) {
+            this.floatingText.showLoss(enemyCount, new BABYLON.Vector3(pos.x, 2, pos.z));
+          }
 
           if (this.animationsEnabled) {
-            // Visual feedback
-            const pos = obstacle.getPosition() as any;
+            // Additional visual feedback (particles, camera shake)
             this.particleSystem.createEnemyHitEffect(new BABYLON.Vector3(pos.x, 1, pos.z));
             this.cameraEffects.shakeHeavy();
-
-            // Show damage number
-            this.floatingText.showLoss(enemyCount, new BABYLON.Vector3(pos.x, 2, pos.z));
           }
 
           // Update stats

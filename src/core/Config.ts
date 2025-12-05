@@ -11,8 +11,14 @@ export const Config = {
   LANE_WIDTH: 5,
   ROAD_WIDTH: 15,
 
-  // Feature flags
-  ENABLE_FANCY_ANIMATIONS: false, // Disable floating text, particles, screen shake, etc.
+  // Feature flags - Testing
+  GOD_MODE: false,                // Invincibility (no damage from enemies)
+
+  // Feature flags - Performance Related
+  ENABLE_FANCY_ANIMATIONS: false, // Particles, screen shake, camera effects
+  ENABLE_DETAILED_MODELS: true,   // High-poly stickmen (vs simple models)
+  ENABLE_FLOATING_TEXT: true,     // Damage/gain numbers (critical feedback)
+  ENABLE_SOUND: true,             // Audio system
 
   // Dynamic Systems Configuration
   ENABLE_RANDOM_EVENTS: true,        // Random timed events (Double Trouble, Feast/Famine, etc.)
