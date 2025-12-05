@@ -56,10 +56,13 @@ export interface IUIManager {
   initialize(): void;
   updateCrowdCount(count: number): void;
   updateDistance(distance: number): void;
+  updateFPS(): void;
   showStartScreen(): void;
   hideStartScreen(): void;
   showGameOver(score: number, distance: number): void;
   hideGameOver(): void;
   onStartGame(callback: () => void): void;
   onRestartGame(callback: () => void): void;
+  onSpeedChange?(callback: (speed: number) => void): void;
+  onFrequencyChange?(callback: (interval: number) => void): void;
 }

@@ -96,6 +96,13 @@ export class Player implements IUpdatable, ICollidable {
   }
 
   /**
+   * Get position as Vector3
+   */
+  public getPositionVector(): Vector3 {
+    return this.position.clone();
+  }
+
+  /**
    * Get current crowd count
    */
   public getCrowdCount(): number {

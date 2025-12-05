@@ -6,10 +6,43 @@ import { Vector3 } from '@babylonjs/core';
  */
 export const Config = {
   // Game settings
-  INITIAL_CROWD_COUNT: 5,
+  INITIAL_CROWD_COUNT: 20, // Increased for better starting experience
   GAME_SPEED: 10, // units per second
   LANE_WIDTH: 5,
   ROAD_WIDTH: 15,
+
+  // Feature flags - Testing
+  GOD_MODE: false,                // Invincibility (no damage from enemies)
+
+  // Feature flags - Performance Related
+  ENABLE_FANCY_ANIMATIONS: false, // Particles, screen shake, camera effects
+  ENABLE_DETAILED_MODELS: true,   // High-poly stickmen (vs simple models)
+  ENABLE_FLOATING_TEXT: true,     // Damage/gain numbers (critical feedback)
+  ENABLE_SOUND: true,             // Audio system
+
+  // Dynamic Systems Configuration
+  ENABLE_RANDOM_EVENTS: true,        // Random timed events (Double Trouble, Feast/Famine, etc.)
+  ENABLE_MOMENTUM_SYSTEM: true,      // Streak bonuses and momentum tiers
+  ENABLE_OBSTACLE_PATTERNS: true,    // Structured spawn patterns (Zigzag, Tunnel, etc.)
+  ENABLE_ADAPTIVE_DIFFICULTY: true,  // Performance-based difficulty adjustment
+  ENABLE_LANE_PERSONALITIES: true,   // Lanes get temporary traits
+  ENABLE_NEAR_MISS_REWARDS: true,    // Reward skillful dodging
+  ENABLE_CRITICAL_HITS: true,        // Random massive multipliers
+  ENABLE_ENEMY_MUTATIONS: true,      // Special enemy properties
+  ENABLE_COMEBACK_MECHANICS: true,   // Help struggling players
+
+  // Difficulty/Strategy settings
+  TRAP_SPAWN_CHANCE: 0.3, // 30% chance to spawn a good gate behind an enemy (risk/reward)
+
+  // Power-up effectiveness (ready for character profile system)
+  POWER_UP_EFFECTS: {
+    VAMPIRE_STEAL_PERCENT: 0.5,     // Steal 50% of enemy crowd
+    REGEN_RATE_PER_SECOND: 3,       // Gain 3 crowd per second
+    TIME_SLOW_MULTIPLIER: 0.6,      // Slow to 60% speed
+    FRENZY_MULTIPLIER: 2.0,         // Double gate values
+    SPEED_BOOST_MULTIPLIER: 1.5,    // 1.5x speed
+    GATE_MULTIPLIER: 2.0,           // Double next gate effect (MULTIPLIER power-up)
+  } as const,
 
   // Lane positions
   LANES: {
@@ -32,8 +65,8 @@ export const Config = {
   MAX_ENEMY_COUNT: 50,
 
   // Gate settings
-  GATE_MULTIPLIERS: [2, 3, 5, 10],
-  GATE_ADDITIONS: [5, 10, 15, 20],
+  GATE_MULTIPLIERS: [2, 3, 5, 10], // Not used (multiplication disabled)
+  GATE_ADDITIONS: [10, 20, 30, 50], // Increased for addition-only gameplay
 
   // Camera settings
   CAMERA_POSITION: new Vector3(0, 20, -25),

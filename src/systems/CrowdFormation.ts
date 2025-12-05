@@ -6,13 +6,11 @@ import { StickmanBuilder } from '@/utils/StickmanBuilder';
  * Single Responsibility: Crowd visual representation
  */
 export class CrowdFormation {
-  private scene: Scene;
   private template: Mesh;
   private instances: InstancedMesh[] = [];
   private targetCount: number = 0;
   private currentCount: number = 0;
   private rootPosition: Vector3;
-  private color: Color3;
 
   // Formation settings
   private readonly STICKMAN_SPACING = 0.5;
@@ -24,9 +22,7 @@ export class CrowdFormation {
     position: Vector3,
     color: Color3 = new Color3(0.19, 0.51, 0.81)
   ) {
-    this.scene = scene;
     this.rootPosition = position;
-    this.color = color;
 
     // Create template stickman for instancing
     this.template = StickmanBuilder.createStickmanTemplate(scene, color);
