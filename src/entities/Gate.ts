@@ -19,7 +19,7 @@ import { Config, GateType } from '@/core/Config';
 export class Gate extends Obstacle {
   private gateType: GateType;
   private value: number;
-  private glowParts: Mesh[];
+  private glowParts!: Mesh[];
   private animationTime: number = 0;
 
   constructor(
@@ -32,14 +32,15 @@ export class Gate extends Obstacle {
     super(scene, position, lane);
     this.gateType = gateType;
     this.value = value;
-    this.glowParts = []; // Initialize after super()
+
+    // super() called createMesh() before gateType was set — rebuild with correct color
+    if (this.glowParts) this.glowParts.forEach(p => p.dispose());
+    this.glowParts = [];
+    if (this.mesh) this.mesh.dispose();
+    this.createMesh();
 
     // Create label after properties are set
-    const color =
-      this.gateType === GateType.MULTIPLY
-        ? Color3.FromHexString(Config.COLORS.GATE_MULTIPLY)
-        : Color3.FromHexString(Config.COLORS.GATE_ADD);
-    this.createLabel(this.mesh as any, color);
+    this.createLabel(this.mesh as any, this.getGateColor());
   }
 
   /**
@@ -56,10 +57,7 @@ export class Gate extends Obstacle {
     gateNode.position = this.position.clone();
 
     // Get color based on type
-    const color =
-      this.gateType === GateType.MULTIPLY
-        ? Color3.FromHexString(Config.COLORS.GATE_MULTIPLY)
-        : Color3.FromHexString(Config.COLORS.GATE_ADD);
+    const color = this.getGateColor();
 
     // Create arch/portal frame (3 parts: left, right, top)
     const pillarWidth = 0.4;
@@ -153,8 +151,11 @@ export class Gate extends Obstacle {
       this.scene
     );
 
-    const text =
-      this.gateType === GateType.MULTIPLY ? `x${this.value}` : `+${this.value}`;
+    const text = this.gateType === GateType.MULTIPLY
+      ? `x${this.value}`
+      : this.gateType === GateType.DIVIDE
+        ? `÷${this.value}`
+        : `+${this.value}`;
 
     const ctx = texture.getContext() as CanvasRenderingContext2D;
 
@@ -195,12 +196,7 @@ export class Gate extends Obstacle {
     this.glowParts.forEach((part) => {
       const mat = part.material as StandardMaterial;
       if (mat && mat.emissiveColor) {
-        const baseColor =
-          this.gateType === GateType.MULTIPLY
-            ? Color3.FromHexString(Config.COLORS.GATE_MULTIPLY)
-            : Color3.FromHexString(Config.COLORS.GATE_ADD);
-
-        mat.emissiveColor = baseColor.scale(pulseIntensity);
+        mat.emissiveColor = this.getGateColor().scale(pulseIntensity);
       }
     });
 
@@ -217,17 +213,28 @@ export class Gate extends Obstacle {
   public onCollision(player: Player): void {
     if (this.gateType === GateType.MULTIPLY) {
       player.multiplyCrowd(this.value);
+    } else if (this.gateType === GateType.DIVIDE) {
+      player.divideCrowd(this.value);
     } else {
       player.addToCrowd(this.value);
     }
 
-    // Visual feedback - fade out all parts
-    this.glowParts.forEach((part) => {
-      const mat = part.material as StandardMaterial;
-      if (mat) {
-        mat.alpha = 0.2;
-      }
-    });
+    // Destroy gate on contact — it's been used
+    this.shouldDestroy = true;
+  }
+
+  /**
+   * Get the color for this gate type.
+   * Falls back to ADD color during super() construction before gateType is set.
+   */
+  private getGateColor(): Color3 {
+    switch (this.gateType) {
+      case GateType.MULTIPLY: return Color3.FromHexString(Config.COLORS.GATE_MULTIPLY);
+      case GateType.DIVIDE: return Color3.FromHexString(Config.COLORS.GATE_DIVIDE);
+      case GateType.ADD:
+      default:
+        return Color3.FromHexString(Config.COLORS.GATE_ADD);
+    }
   }
 
   /**

@@ -345,4 +345,79 @@ export class StickmanBuilder {
     stickman.setEnabled(false); // Template is invisible
     return stickman;
   }
+
+  /**
+   * Create a stickman mesh optimized for thin instances.
+   * Thin instances require a single material — multi-sub-mesh merges break.
+   * Uses one material for ALL parts and merges with multiMaterial=false.
+   */
+  public static createThinInstanceTemplate(
+    scene: Scene,
+    color: Color3 = new Color3(0.19, 0.51, 0.81)
+  ): Mesh {
+    const stickman = new TransformNode('thinStickman', scene);
+
+    // Single shared material for all parts
+    const mat = new StandardMaterial('thinStickmanMat', scene);
+    mat.diffuseColor = color;
+    mat.emissiveColor = color.scale(0.15);
+    mat.specularColor = new Color3(0.3, 0.3, 0.3);
+    mat.specularPower = 32;
+
+    // Build parts — same geometry as detailed, single material
+    const parts: Mesh[] = [];
+
+    const body = MeshBuilder.CreateCylinder('b', { diameter: 0.35, height: 0.9, tessellation: 6 }, scene);
+    body.position.y = 0.5; body.material = mat; body.parent = stickman; parts.push(body);
+
+    const neck = MeshBuilder.CreateCylinder('n', { diameter: 0.15, height: 0.12, tessellation: 4 }, scene);
+    neck.position.y = 1.0; neck.material = mat; neck.parent = stickman; parts.push(neck);
+
+    const head = MeshBuilder.CreateSphere('h', { diameter: 0.45, segments: 6 }, scene);
+    head.position.y = 1.2; head.material = mat; head.parent = stickman; parts.push(head);
+
+    // Arms
+    const lua = MeshBuilder.CreateCylinder('lua', { diameter: 0.14, height: 0.4, tessellation: 4 }, scene);
+    lua.rotation.z = Math.PI / 5; lua.position.set(-0.35, 0.65, 0); lua.material = mat; lua.parent = stickman; parts.push(lua);
+
+    const lfa = MeshBuilder.CreateCylinder('lfa', { diameter: 0.12, height: 0.35, tessellation: 4 }, scene);
+    lfa.rotation.z = Math.PI / 4.5; lfa.position.set(-0.52, 0.3, 0); lfa.material = mat; lfa.parent = stickman; parts.push(lfa);
+
+    const rua = MeshBuilder.CreateCylinder('rua', { diameter: 0.14, height: 0.4, tessellation: 4 }, scene);
+    rua.rotation.z = -Math.PI / 5; rua.position.set(0.35, 0.65, 0); rua.material = mat; rua.parent = stickman; parts.push(rua);
+
+    const rfa = MeshBuilder.CreateCylinder('rfa', { diameter: 0.12, height: 0.35, tessellation: 4 }, scene);
+    rfa.rotation.z = -Math.PI / 4.5; rfa.position.set(0.52, 0.3, 0); rfa.material = mat; rfa.parent = stickman; parts.push(rfa);
+
+    // Legs
+    const lt = MeshBuilder.CreateCylinder('lt', { diameter: 0.18, height: 0.45, tessellation: 4 }, scene);
+    lt.position.set(-0.14, -0.175, 0); lt.material = mat; lt.parent = stickman; parts.push(lt);
+
+    const ls = MeshBuilder.CreateCylinder('ls', { diameter: 0.15, height: 0.4, tessellation: 4 }, scene);
+    ls.position.set(-0.14, -0.6, 0); ls.material = mat; ls.parent = stickman; parts.push(ls);
+
+    const rt = MeshBuilder.CreateCylinder('rt', { diameter: 0.18, height: 0.45, tessellation: 4 }, scene);
+    rt.position.set(0.14, -0.175, 0); rt.material = mat; rt.parent = stickman; parts.push(rt);
+
+    const rs = MeshBuilder.CreateCylinder('rs', { diameter: 0.15, height: 0.4, tessellation: 4 }, scene);
+    rs.position.set(0.14, -0.6, 0); rs.material = mat; rs.parent = stickman; parts.push(rs);
+
+    // Merge with single material — thin instance compatible
+    const merged = Mesh.MergeMeshes(
+      parts,
+      true,  // dispose source meshes
+      false, // NO multi-material — single material required for thin instances
+    );
+
+    if (merged) {
+      merged.name = 'thinStickman';
+      merged.material = mat;
+      // Freeze material since all instances share it
+      mat.freeze();
+      return merged;
+    }
+
+    // Fallback
+    return body;
+  }
 }

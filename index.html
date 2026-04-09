@@ -41,16 +41,23 @@
       position: absolute;
       top: 20px;
       left: 20px;
-      background: #3182ce;
+      background: linear-gradient(135deg, #3182ce, #2c5282);
       color: white;
       padding: 12px 24px;
       border-radius: 25px;
-      font-size: 24px;
+      font-size: 28px;
       font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 100px;
+      justify-content: center;
+      transition: transform 0.15s ease;
+    }
+
+    #score-display.pulse {
+      transform: scale(1.15);
     }
 
     #distance-display {
@@ -348,7 +355,9 @@
       <div id="distance-value">0m</div>
     </div>
 
-    <div id="debug-panel">
+    <button id="settings-toggle" onclick="var d=document.getElementById('debug-panel');var c=document.getElementById('controls-panel');var show=d.style.display==='none';d.style.display=show?'block':'none';c.style.display=show?'block':'none';" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.5);color:white;border:1px solid rgba(255,255,255,0.3);padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;pointer-events:all;z-index:20;">Settings</button>
+
+    <div id="debug-panel" class="collapsed" style="display: none;">
       <div class="debug-header" onclick="document.getElementById('debug-panel').classList.toggle('collapsed')">
         <span class="debug-title">🐛 Debug Panel</span>
         <button class="debug-toggle-btn" onclick="event.stopPropagation()">▼</button>
@@ -418,21 +427,24 @@
     <div id="start-screen">
       <div class="screen-content">
         <h1>Crowd Runner</h1>
-        <p>Swipe Left/Right or Use Arrow Keys<br>Avoid obstacles and grow your crowd!</p>
-        <button id="start-button">Start Game</button>
+        <p>Arrow Keys or Swipe to dodge<br>Hit green & blue gates to grow your crowd!<br>Avoid the red gates!</p>
+        <button id="start-button">Start Running</button>
       </div>
     </div>
 
     <div id="game-over-screen" class="hidden">
       <div class="screen-content">
         <h2>Game Over!</h2>
-        <p>Final Score: <span id="final-score">0</span></p>
+        <div style="font-size: 48px; font-weight: bold; color: #3182ce; margin: 16px 0;">
+          <span id="final-score">0</span>
+        </div>
+        <p style="margin-bottom: 8px;">Crowd Remaining</p>
         <p>Distance: <span id="final-distance">0</span>m</p>
         <button id="restart-button">Play Again</button>
       </div>
     </div>
 
-    <div id="controls-panel">
+    <div id="controls-panel" style="display: none;">
       <div class="control-group">
         <div class="control-label">
           <span>Game Speed</span>

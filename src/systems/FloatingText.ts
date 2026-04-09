@@ -48,31 +48,42 @@ export class FloatingTextSystem implements IUpdatable, IDestroyable {
     color: BABYLON.Color3 = BABYLON.Color3.Green(),
     scale: number = 1.0
   ): void {
-    // Create dynamic texture for text
+    // Create dynamic texture for text — wider canvas for long text
+    const texWidth = 1024;
+    const texHeight = 256;
     const texture = new BABYLON.DynamicTexture(
       'floatingText',
-      { width: 512, height: 256 },
+      { width: texWidth, height: texHeight },
       this.scene,
       false
     );
 
     const ctx = texture.getContext() as CanvasRenderingContext2D;
-    ctx.clearRect(0, 0, 512, 256);
+    ctx.clearRect(0, 0, texWidth, texHeight);
 
-    // Draw text with outline
-    ctx.font = 'bold 120px Arial';
+    // Measure text to auto-size font
+    let fontSize = 120;
+    ctx.font = `bold ${fontSize}px Arial`;
+    let textWidth = ctx.measureText(text).width;
+    // Shrink font if text is too wide for canvas
+    while (textWidth > texWidth * 0.9 && fontSize > 40) {
+      fontSize -= 10;
+      ctx.font = `bold ${fontSize}px Arial`;
+      textWidth = ctx.measureText(text).width;
+    }
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     // Outline
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
     ctx.lineWidth = 8;
-    ctx.strokeText(text, 256, 128);
+    ctx.strokeText(text, texWidth / 2, texHeight / 2);
 
     // Fill
     const hexColor = color.toHexString();
     ctx.fillStyle = hexColor;
-    ctx.fillText(text, 256, 128);
+    ctx.fillText(text, texWidth / 2, texHeight / 2);
 
     texture.update();
 
@@ -84,8 +95,11 @@ export class FloatingTextSystem implements IUpdatable, IDestroyable {
     );
 
     plane.position = position.clone();
-    plane.position.y += 1;
+    plane.position.y = Math.max(position.y, 3) + 2; // Always well above road
     plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+    // Render on top of scene geometry so road/ground never clips text
+    plane.renderingGroupId = 1;
 
     // Create material
     const material = new BABYLON.StandardMaterial('floatingTextMat', this.scene);
@@ -94,6 +108,7 @@ export class FloatingTextSystem implements IUpdatable, IDestroyable {
     material.opacityTexture = texture;
     material.backFaceCulling = false;
     material.disableLighting = true;
+    material.useAlphaFromDiffuseTexture = true;
 
     plane.material = material;
 

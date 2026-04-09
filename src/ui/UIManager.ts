@@ -42,6 +42,11 @@ export class UIManager implements IUIManager {
   private fpsFrames: number = 0;
   private fpsLastTime: number = 0;
 
+  // Score animation
+  private lastCrowdCount: number = 0;
+  private scoreDisplay!: HTMLElement;
+  private pulseCooldown: number = 0;
+
   /**
    * Initialize UI elements
    */
@@ -87,6 +92,9 @@ export class UIManager implements IUIManager {
 
     // Setup debug panel listeners
     this.setupDebugListeners();
+
+    // Score display element for pulse animation
+    this.scoreDisplay = this.getElement('score-display');
 
     // Hide loading screen
     this.loadingElement.classList.add('hidden');
@@ -135,10 +143,30 @@ export class UIManager implements IUIManager {
   }
 
   /**
-   * Update crowd count display
+   * Update crowd count display with pulse animation on change
    */
   public updateCrowdCount(count: number): void {
     this.crowdCountElement.textContent = count.toString();
+
+    // Pulse the score display on significant changes
+    const diff = Math.abs(count - this.lastCrowdCount);
+    if (diff >= 5 && this.pulseCooldown <= 0) {
+      this.scoreDisplay.classList.add('pulse');
+      this.pulseCooldown = 10; // frames
+      setTimeout(() => this.scoreDisplay.classList.remove('pulse'), 150);
+    }
+    if (this.pulseCooldown > 0) this.pulseCooldown--;
+
+    // Color the score based on trend
+    if (count > this.lastCrowdCount + 2) {
+      this.scoreDisplay.style.background = 'linear-gradient(135deg, #38a169, #276749)';
+    } else if (count < this.lastCrowdCount - 2) {
+      this.scoreDisplay.style.background = 'linear-gradient(135deg, #e53e3e, #c53030)';
+    } else {
+      this.scoreDisplay.style.background = 'linear-gradient(135deg, #3182ce, #2c5282)';
+    }
+
+    this.lastCrowdCount = count;
   }
 
   /**

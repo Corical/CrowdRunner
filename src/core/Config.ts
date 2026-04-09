@@ -15,7 +15,7 @@ export const Config = {
   GOD_MODE: false,                // Invincibility (no damage from enemies)
 
   // Feature flags - Performance Related
-  ENABLE_FANCY_ANIMATIONS: false, // Particles, screen shake, camera effects
+  ENABLE_FANCY_ANIMATIONS: true, // Particles, screen shake, camera effects
   ENABLE_DETAILED_MODELS: true,   // High-poly stickmen (vs simple models)
   ENABLE_FLOATING_TEXT: true,     // Damage/gain numbers (critical feedback)
   ENABLE_SOUND: true,             // Audio system
@@ -65,8 +65,9 @@ export const Config = {
   MAX_ENEMY_COUNT: 50,
 
   // Gate settings
-  GATE_MULTIPLIERS: [2, 3, 5, 10], // Not used (multiplication disabled)
-  GATE_ADDITIONS: [10, 20, 30, 50], // Increased for addition-only gameplay
+  GATE_MULTIPLIERS: [2, 3], // Conservative multipliers to prevent runaway growth
+  GATE_ADDITIONS: [5, 10, 15, 20], // Balanced with multiply gates present
+  GATE_DIVISORS: [2, 3], // Division gates — scales punishment with crowd size
 
   // Camera settings
   CAMERA_POSITION: new Vector3(0, 20, -25),
@@ -77,9 +78,9 @@ export const Config = {
   TARGET_FPS: 60,
   MAX_OBSTACLES_ON_SCREEN: 15,
 
-  // Collision
-  COLLISION_RADIUS: 2,
-  GATE_COLLISION_RADIUS: 3,
+  // Collision — tighter radii so gates trigger on visual overlap, not 2cm away
+  COLLISION_RADIUS: 1,
+  GATE_COLLISION_RADIUS: 1.5,
 
   // Colors
   COLORS: {
@@ -87,6 +88,7 @@ export const Config = {
     ENEMY: '#E53E3E',
     GATE_MULTIPLY: '#4299E1',
     GATE_ADD: '#48BB78',
+    GATE_DIVIDE: '#F97316', // Orange — warning color for division
     ROAD: '#D4A574',
     GROUND: '#90CDF4',
   },
@@ -136,4 +138,5 @@ export enum ObstacleType {
 export enum GateType {
   MULTIPLY = 'MULTIPLY',
   ADD = 'ADD',
+  DIVIDE = 'DIVIDE',
 }

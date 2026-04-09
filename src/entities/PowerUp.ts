@@ -6,86 +6,89 @@ import { Player } from './Player';
  * Power-up types
  */
 export enum PowerUpType {
-  // Original power-ups
-  SHIELD = 'shield',           // Protects from next enemy hit
-  MAGNET = 'magnet',           // Auto-collect nearby gates
-  SPEED_BOOST = 'speed_boost', // Temporary speed increase
-  MULTIPLIER = 'multiplier',   // Doubles next gate effect
-
-  // New strategic power-ups
-  VAMPIRE = 'vampire',         // Steal crowd from enemies instead of losing
-  GHOST = 'ghost',             // Pass through enemies without damage
-  REGEN = 'regen',             // Slowly gain crowd over time
-  TIME_SLOW = 'time_slow',     // Slow down all obstacles
-  FRENZY = 'frenzy'           // Double all gate values
+  SHIELD = 'shield',
+  MAGNET = 'magnet',
+  SPEED_BOOST = 'speed_boost',
+  MULTIPLIER = 'multiplier',
+  VAMPIRE = 'vampire',
+  GHOST = 'ghost',
+  REGEN = 'regen',
+  TIME_SLOW = 'time_slow',
+  FRENZY = 'frenzy'
 }
 
-/**
- * Power-up configuration
- */
 interface PowerUpConfig {
   duration: number;
   color: BABYLON.Color3;
-  icon: string;
+  label: string;
+  shape: 'sphere' | 'diamond' | 'star' | 'cross' | 'octahedron';
 }
 
 /**
- * Power-up entity that grants special abilities
+ * Power-up entity — distinctive 3D shapes with text labels.
+ * Each type has a unique shape + color so players learn to recognise them.
  */
 export class PowerUp extends Obstacle {
   private powerUpType: PowerUpType;
   private rotationSpeed: number = 2;
-  private floatOffset: number = 0;
-  private label: BABYLON.Mesh | null = null;
+  private floatTime: number = 0;
+  private labelMesh: BABYLON.Mesh | null = null;
+  private glowMesh: BABYLON.Mesh | null = null;
 
   private static readonly CONFIGS: Record<PowerUpType, PowerUpConfig> = {
-    // Original power-ups
     [PowerUpType.SHIELD]: {
       duration: 10,
-      color: BABYLON.Color3.FromHexString('#60A5FA'), // Blue
-      icon: '🛡️'
+      color: BABYLON.Color3.FromHexString('#60A5FA'),
+      label: 'SHIELD',
+      shape: 'sphere',
     },
     [PowerUpType.MAGNET]: {
       duration: 8,
-      color: BABYLON.Color3.FromHexString('#F59E0B'), // Amber
-      icon: '🧲'
+      color: BABYLON.Color3.FromHexString('#F59E0B'),
+      label: 'MAGNET',
+      shape: 'diamond',
     },
     [PowerUpType.SPEED_BOOST]: {
       duration: 6,
-      color: BABYLON.Color3.FromHexString('#10B981'), // Green
-      icon: '⚡'
+      color: BABYLON.Color3.FromHexString('#10B981'),
+      label: 'SPEED',
+      shape: 'octahedron',
     },
     [PowerUpType.MULTIPLIER]: {
       duration: 12,
-      color: BABYLON.Color3.FromHexString('#8B5CF6'), // Purple
-      icon: '✨'
+      color: BABYLON.Color3.FromHexString('#8B5CF6'),
+      label: 'x2',
+      shape: 'star',
     },
-
-    // New strategic power-ups
     [PowerUpType.VAMPIRE]: {
       duration: 8,
-      color: BABYLON.Color3.FromHexString('#DC2626'), // Red
-      icon: '🧛'
+      color: BABYLON.Color3.FromHexString('#DC2626'),
+      label: 'DRAIN',
+      shape: 'octahedron',
     },
     [PowerUpType.GHOST]: {
       duration: 5,
-      color: BABYLON.Color3.FromHexString('#E5E7EB'), // Ghost white
-      icon: '👻'
+      color: BABYLON.Color3.FromHexString('#E5E7EB'),
+      label: 'GHOST',
+      shape: 'sphere',
     },
     [PowerUpType.REGEN]: {
       duration: 10,
-      color: BABYLON.Color3.FromHexString('#22C55E'), // Bright green
-      icon: '💚'
+      color: BABYLON.Color3.FromHexString('#22C55E'),
+      label: 'HEAL',
+      shape: 'cross',
     },
     [PowerUpType.TIME_SLOW]: {
       duration: 6,
-      color: BABYLON.Color3.FromHexString('#06B6D4'), // Cyan
-      icon: '⏰'
+      color: BABYLON.Color3.FromHexString('#06B6D4'),
+      label: 'SLOW',
+      shape: 'diamond',
     },
     [PowerUpType.FRENZY]: {
       duration: 8,
-      color: BABYLON.Color3.FromHexString('#F97316'), // Orange
-      icon: '🔥'
+      color: BABYLON.Color3.FromHexString('#F97316'),
+      label: 'FRENZY',
+      shape: 'star',
     }
   };
 
@@ -97,191 +100,215 @@ export class PowerUp extends Obstacle {
   ) {
     super(scene, position, lane);
     this.powerUpType = powerUpType;
-    // Recreate mesh with proper power-up type now that it's set
+
+    // Recreate mesh with correct type (super() calls createMesh before type is set)
     if (this.mesh) {
       this.mesh.dispose();
     }
     this.createMesh();
-    this.createLabel();
+    this.createTextLabel();
   }
 
   /**
-   * Creates the power-up mesh (rotating cube with glow)
+   * Create the 3D shape for this power-up type
    */
   protected createMesh(): void {
     const config = PowerUp.CONFIGS[this.powerUpType];
-    if (!config) return; // Guard against undefined type
+    if (!config) return;
 
-    // Create main cube
-    const cube = BABYLON.MeshBuilder.CreateBox(
-      'powerup',
-      { size: 1.5 },
+    let shape: BABYLON.Mesh;
+
+    switch (config.shape) {
+      case 'sphere':
+        shape = BABYLON.MeshBuilder.CreateSphere(
+          'pu_sphere',
+          { diameter: 1.4, segments: 12 },
+          this.scene
+        );
+        break;
+
+      case 'diamond': {
+        // Two cones tip-to-tip = diamond
+        const top = BABYLON.MeshBuilder.CreateCylinder(
+          'pu_top',
+          { diameterTop: 0, diameterBottom: 1.2, height: 1, tessellation: 6 },
+          this.scene
+        );
+        top.position.y = 0.5;
+
+        const bottom = BABYLON.MeshBuilder.CreateCylinder(
+          'pu_bot',
+          { diameterTop: 1.2, diameterBottom: 0, height: 1, tessellation: 6 },
+          this.scene
+        );
+        bottom.position.y = -0.5;
+
+        shape = BABYLON.Mesh.MergeMeshes([top, bottom], true, false)!;
+        shape.name = 'pu_diamond';
+        break;
+      }
+
+      case 'star': {
+        // Spiky shape — two intersecting octahedrons at different rotations
+        const oct1 = BABYLON.MeshBuilder.CreatePolyhedron(
+          'pu_oct1',
+          { type: 1, size: 0.6 },
+          this.scene
+        );
+        const oct2 = BABYLON.MeshBuilder.CreatePolyhedron(
+          'pu_oct2',
+          { type: 1, size: 0.6 },
+          this.scene
+        );
+        oct2.rotation.y = Math.PI / 4;
+        oct2.rotation.x = Math.PI / 4;
+
+        shape = BABYLON.Mesh.MergeMeshes([oct1, oct2], true, false)!;
+        shape.name = 'pu_star';
+        break;
+      }
+
+      case 'cross': {
+        // Medical cross — three intersecting boxes
+        const h = BABYLON.MeshBuilder.CreateBox('pu_h', { width: 1.4, height: 0.4, depth: 0.4 }, this.scene);
+        const v = BABYLON.MeshBuilder.CreateBox('pu_v', { width: 0.4, height: 1.4, depth: 0.4 }, this.scene);
+        const d = BABYLON.MeshBuilder.CreateBox('pu_d', { width: 0.4, height: 0.4, depth: 1.4 }, this.scene);
+
+        shape = BABYLON.Mesh.MergeMeshes([h, v, d], true, false)!;
+        shape.name = 'pu_cross';
+        break;
+      }
+
+      case 'octahedron':
+        shape = BABYLON.MeshBuilder.CreatePolyhedron(
+          'pu_octa',
+          { type: 1, size: 0.6 },
+          this.scene
+        );
+        break;
+
+      default:
+        shape = BABYLON.MeshBuilder.CreateBox('pu_box', { size: 1.2 }, this.scene);
+    }
+
+    shape.position = this.position.clone();
+
+    // Glowing material
+    const mat = new BABYLON.StandardMaterial('puMat', this.scene);
+    mat.diffuseColor = config.color;
+    mat.emissiveColor = config.color.scale(0.5);
+    mat.specularColor = new BABYLON.Color3(1, 1, 1);
+    mat.specularPower = 64;
+    shape.material = mat;
+
+    // Outer glow halo
+    this.glowMesh = BABYLON.MeshBuilder.CreateSphere(
+      'puGlow',
+      { diameter: 2.2, segments: 8 },
       this.scene
     );
-    cube.position = this.position;
+    this.glowMesh.parent = shape;
+    this.glowMesh.position = BABYLON.Vector3.Zero();
 
-    // Create glowing material
-    const material = new BABYLON.StandardMaterial('powerupMat', this.scene);
-    material.diffuseColor = config.color;
-    material.emissiveColor = config.color.scale(0.7);
-    material.specularColor = new BABYLON.Color3(1, 1, 1);
-    material.specularPower = 64;
-    cube.material = material;
-
-    // Create outer glow sphere
-    const glow = BABYLON.MeshBuilder.CreateSphere(
-      'powerupGlow',
-      { diameter: 2.5, segments: 16 },
-      this.scene
-    );
-    glow.parent = cube;
-    glow.position = BABYLON.Vector3.Zero();
-
-    const glowMat = new BABYLON.StandardMaterial('glowMat', this.scene);
+    const glowMat = new BABYLON.StandardMaterial('puGlowMat', this.scene);
     glowMat.emissiveColor = config.color;
-    glowMat.alpha = 0.2;
-    glow.material = glowMat;
+    glowMat.alpha = 0.15;
+    glowMat.backFaceCulling = false;
+    this.glowMesh.material = glowMat;
 
-    // Add particle ring effect
-    this.createRingParticles(cube, config.color);
-
-    this.mesh = cube;
+    this.mesh = shape;
   }
 
   /**
-   * Creates orbiting particle effect around power-up
+   * Create a readable text label above the power-up (no emoji — plain text)
    */
-  private createRingParticles(parent: BABYLON.Mesh, color: BABYLON.Color3): void {
-    const particleSystem = new BABYLON.ParticleSystem(
-      'powerupParticles',
-      50,
-      this.scene
-    );
-
-    particleSystem.emitter = parent;
-    particleSystem.particleTexture = this.createSimpleTexture();
-
-    particleSystem.minSize = 0.1;
-    particleSystem.maxSize = 0.3;
-    particleSystem.minLifeTime = 1.0;
-    particleSystem.maxLifeTime = 2.0;
-
-    particleSystem.color1 = new BABYLON.Color4(color.r, color.g, color.b, 1);
-    particleSystem.color2 = new BABYLON.Color4(color.r, color.g, color.b, 0.5);
-    particleSystem.colorDead = new BABYLON.Color4(color.r, color.g, color.b, 0);
-
-    particleSystem.emitRate = 20;
-    particleSystem.minEmitPower = 1;
-    particleSystem.maxEmitPower = 2;
-
-    particleSystem.createSphereEmitter(1.5);
-    particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
-
-    particleSystem.start();
-  }
-
-  /**
-   * Creates icon label above power-up
-   */
-  private createLabel(): void {
+  private createTextLabel(): void {
     const config = PowerUp.CONFIGS[this.powerUpType];
+    if (!config) return;
 
-    // Create label plane
     const plane = BABYLON.MeshBuilder.CreatePlane(
-      'powerupLabel',
-      { width: 2, height: 2 },
+      'puLabel',
+      { width: 2.5, height: 0.8 },
       this.scene
     );
     plane.position = this.position.clone();
-    plane.position.y += 2.5;
+    plane.position.y += 2.2;
     plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+    plane.renderingGroupId = 1;
 
-    // Create dynamic texture for icon
-    const texture = new BABYLON.DynamicTexture(
-      'powerupLabelTexture',
-      { width: 256, height: 256 },
+    const tex = new BABYLON.DynamicTexture(
+      'puLabelTex',
+      { width: 512, height: 128 },
       this.scene,
       false
     );
 
-    const ctx = texture.getContext() as CanvasRenderingContext2D;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    const ctx = tex.getContext() as CanvasRenderingContext2D;
+    ctx.clearRect(0, 0, 512, 128);
+
+    // Background pill
+    ctx.fillStyle = `rgba(0, 0, 0, 0.6)`;
+    const radius = 30;
     ctx.beginPath();
-    ctx.arc(128, 128, 120, 0, Math.PI * 2);
+    ctx.moveTo(radius, 8);
+    ctx.lineTo(512 - radius, 8);
+    ctx.quadraticCurveTo(504, 8, 504, 8 + radius);
+    ctx.lineTo(504, 120 - radius);
+    ctx.quadraticCurveTo(504, 120, 504 - radius, 120);
+    ctx.lineTo(radius, 120);
+    ctx.quadraticCurveTo(8, 120, 8, 120 - radius);
+    ctx.lineTo(8, 8 + radius);
+    ctx.quadraticCurveTo(8, 8, 8 + radius, 8);
+    ctx.closePath();
     ctx.fill();
 
-    ctx.font = 'bold 120px Arial';
+    // Text
+    ctx.font = 'bold 64px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(config.icon, 128, 128);
+    ctx.fillStyle = `rgb(${config.color.r * 255}, ${config.color.g * 255}, ${config.color.b * 255})`;
+    ctx.fillText(config.label, 256, 68);
 
-    texture.update();
+    tex.update();
 
-    const material = new BABYLON.StandardMaterial('powerupLabelMat', this.scene);
-    material.diffuseTexture = texture;
-    material.emissiveTexture = texture;
-    material.opacityTexture = texture;
-    material.backFaceCulling = false;
-    material.disableLighting = true;
+    const mat = new BABYLON.StandardMaterial('puLabelMat', this.scene);
+    mat.diffuseTexture = tex;
+    mat.emissiveTexture = tex;
+    mat.opacityTexture = tex;
+    mat.backFaceCulling = false;
+    mat.disableLighting = true;
+    mat.useAlphaFromDiffuseTexture = true;
 
-    plane.material = material;
-    this.label = plane;
-  }
-
-  /**
-   * Creates simple particle texture
-   */
-  private createSimpleTexture(): BABYLON.Texture {
-    const size = 32;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
-
-    const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-
-    const texture = new BABYLON.Texture('data:powerupTexture', this.scene, false, false);
-    texture.updateURL(canvas.toDataURL());
-
-    return texture;
+    plane.material = mat;
+    this.labelMesh = plane;
   }
 
   public update(deltaTime: number): void {
     super.update(deltaTime);
-
     if (!this.mesh) return;
 
-    // Rotate the power-up
+    // Spin
     this.mesh.rotation.y += this.rotationSpeed * deltaTime;
-    this.mesh.rotation.x += this.rotationSpeed * 0.5 * deltaTime;
 
-    // Keep position fixed (no bouncing/floating)
-    this.mesh.position.y = this.position.y;
+    // Float up and down
+    this.floatTime += deltaTime * 3;
+    this.mesh.position.y = this.position.y + Math.sin(this.floatTime) * 0.3 + 0.3;
 
-    // Update label position
-    if (this.label) {
-      this.label.position.x = this.mesh.position.x;
-      this.label.position.z = this.mesh.position.z;
-      this.label.position.y = this.position.y + 2.5;
+    // Pulse glow
+    if (this.glowMesh) {
+      const scale = 1 + Math.sin(this.floatTime * 2) * 0.15;
+      this.glowMesh.scaling.setAll(scale);
     }
 
-    // Subtle pulse glow effect
-    this.floatOffset += deltaTime * 2;
-    if (this.mesh.getChildMeshes()[0]) {
-      const glow = this.mesh.getChildMeshes()[0];
-      const scale = 1 + Math.sin(this.floatOffset * 2) * 0.1;
-      glow.scaling = new BABYLON.Vector3(scale, scale, scale);
+    // Track label to mesh
+    if (this.labelMesh) {
+      this.labelMesh.position.x = this.mesh.position.x;
+      this.labelMesh.position.z = this.mesh.position.z;
+      this.labelMesh.position.y = this.mesh.position.y + 1.8;
     }
   }
 
   public onCollision(_player: Player): void {
-    // Power-up will be applied by PowerUpManager
-    // Just mark for destruction
     this.shouldDestroy = true;
   }
 
@@ -302,24 +329,23 @@ export class PowerUp extends Obstacle {
   }
 
   public destroy(): void {
+    // Clean up particle systems attached to this mesh
     if (this.mesh) {
-      // Stop all particle systems
-      this.scene.particleSystems.forEach(ps => {
-        if (ps.emitter === this.mesh) {
-          ps.stop();
-          ps.dispose();
-        }
-      });
-
-      this.mesh.dispose();
+      this.scene.particleSystems
+        .filter(ps => ps.emitter === this.mesh)
+        .forEach(ps => { ps.stop(); ps.dispose(); });
     }
 
-    if (this.label) {
-      if (this.label.material) {
-        this.label.material.dispose();
-      }
-      this.label.dispose();
-      this.label = null;
+    if (this.labelMesh) {
+      if (this.labelMesh.material) this.labelMesh.material.dispose();
+      this.labelMesh.dispose();
+      this.labelMesh = null;
+    }
+
+    if (this.glowMesh) {
+      if (this.glowMesh.material) this.glowMesh.material.dispose();
+      this.glowMesh.dispose();
+      this.glowMesh = null;
     }
 
     super.destroy();

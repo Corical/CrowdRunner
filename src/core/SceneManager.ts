@@ -3,11 +3,15 @@ import {
   Scene,
   ArcRotateCamera,
   HemisphericLight,
+  DirectionalLight,
   Vector3,
   Color3,
   MeshBuilder,
   StandardMaterial,
   Color4,
+  DynamicTexture,
+  Mesh,
+  InstancedMesh,
 } from '@babylonjs/core';
 import { ISceneManager } from './Interfaces';
 import { Config } from './Config';
@@ -21,6 +25,12 @@ export class SceneManager implements ISceneManager {
   private engine!: Engine;
   private scene!: Scene;
   private camera!: ArcRotateCamera;
+  private roadMaterial!: StandardMaterial;
+  private scrollOffset: number = 0;
+
+  // Track static meshes/materials for freezing
+  private staticMeshes: (Mesh | InstancedMesh)[] = [];
+  private staticMaterials: StandardMaterial[] = [];
 
   /**
    * Initialize the Babylon.js engine and scene
@@ -83,34 +93,44 @@ export class SceneManager implements ISceneManager {
    * Create scene lighting
    */
   private createLighting(): void {
-    // Main light from above
-    const light = new HemisphericLight(
-      'light',
+    // Ambient fill light
+    const hemiLight = new HemisphericLight(
+      'hemiLight',
       new Vector3(0, 1, 0),
       this.scene
     );
-    light.intensity = 1.2;
-    light.groundColor = new Color3(0.5, 0.5, 0.5);
+    hemiLight.intensity = 0.8;
+    hemiLight.groundColor = new Color3(0.4, 0.4, 0.5);
+
+    // Directional sun light for shadows and depth
+    const sunLight = new DirectionalLight(
+      'sunLight',
+      new Vector3(-0.5, -1, 0.5),
+      this.scene
+    );
+    sunLight.intensity = 0.6;
+    sunLight.diffuse = new Color3(1, 0.95, 0.85);
   }
 
   /**
-   * Create the game environment (road, ground, etc.)
+   * Create the game environment (road, ground, props)
    */
   private createEnvironment(): void {
-    // Create ground plane
+    // Create ground plane (grass)
     const ground = MeshBuilder.CreateGround(
       'ground',
-      { width: 100, height: 300 },
+      { width: 120, height: 300 },
       this.scene
     );
     ground.position.y = -0.1;
     ground.position.z = 75;
 
     const groundMat = new StandardMaterial('groundMat', this.scene);
-    groundMat.diffuseColor = Color3.FromHexString(Config.COLORS.GROUND);
+    groundMat.diffuseColor = new Color3(0.35, 0.65, 0.3); // Grass green
+    groundMat.specularColor = Color3.Black();
     ground.material = groundMat;
 
-    // Create road
+    // Create scrolling road with lane markings texture
     const road = MeshBuilder.CreateGround(
       'road',
       { width: Config.ROAD_WIDTH, height: 300 },
@@ -119,46 +139,189 @@ export class SceneManager implements ISceneManager {
     road.position.y = 0;
     road.position.z = 75;
 
-    const roadMat = new StandardMaterial('roadMat', this.scene);
-    roadMat.diffuseColor = Color3.FromHexString(Config.COLORS.ROAD);
-    road.material = roadMat;
+    this.roadMaterial = new StandardMaterial('roadMat', this.scene);
+    this.roadMaterial.specularColor = Color3.Black();
 
-    // Create lane markers (simple visual guides)
-    this.createLaneMarkers();
+    // Create a procedural road texture with lane dashes
+    const roadTex = new DynamicTexture('roadTex', { width: 512, height: 1024 }, this.scene);
+    const ctx = roadTex.getContext() as CanvasRenderingContext2D;
+
+    // Road surface
+    ctx.fillStyle = '#555555';
+    ctx.fillRect(0, 0, 512, 1024);
+
+    // Road edges (white solid lines)
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(8, 0); ctx.lineTo(8, 1024);
+    ctx.moveTo(504, 0); ctx.lineTo(504, 1024);
+    ctx.stroke();
+
+    // Lane dashes (white dashed center lines)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([40, 30]);
+    // Left lane divider
+    ctx.beginPath();
+    ctx.moveTo(170, 0); ctx.lineTo(170, 1024);
+    ctx.stroke();
+    // Right lane divider
+    ctx.beginPath();
+    ctx.moveTo(342, 0); ctx.lineTo(342, 1024);
+    ctx.stroke();
+
+    roadTex.update();
+    this.roadMaterial.diffuseTexture = roadTex;
+    // Tile the texture so dashes repeat and can scroll
+    roadTex.uScale = 1;
+    roadTex.vScale = 8;
+    road.material = this.roadMaterial;
+
+    // Animate road scrolling in render loop
+    this.scene.registerBeforeRender(() => {
+      this.scrollOffset += 0.002 * Config.GAME_SPEED;
+      if (roadTex) {
+        roadTex.vOffset = this.scrollOffset;
+      }
+    });
+
+    // Track ground and road as static
+    this.staticMeshes.push(ground);
+    this.staticMaterials.push(groundMat);
+
+    // Road borders (raised curbs)
+    this.createRoadBorders();
+
+    // Environment props along sides
+    this.createEnvironmentProps();
+
+    // Freeze everything static — tells Babylon to stop recalculating
+    // transforms and shader uniforms for things that never move
+    this.freezeStaticScene();
   }
 
   /**
-   * Create visual lane markers on the road
+   * Freeze all static meshes and materials to skip per-frame recalculation.
+   * - freezeWorldMatrix() stops transform recomputation (saves CPU)
+   * - material.freeze() stops shader uniform recalculation (saves CPU+GPU)
    */
-  private createLaneMarkers(): void {
-    const markerMaterial = new StandardMaterial('markerMat', this.scene);
-    markerMaterial.diffuseColor = new Color3(0.3, 0.3, 0.3);
+  private freezeStaticScene(): void {
+    for (const mesh of this.staticMeshes) {
+      mesh.freezeWorldMatrix();
+      mesh.isPickable = false; // Not needed for gameplay — skip ray intersection tests
+    }
+    for (const mat of this.staticMaterials) {
+      mat.freeze();
+    }
+  }
 
-    // Left lane marker
-    const leftMarker = MeshBuilder.CreateBox(
-      'leftMarker',
-      { width: 0.2, height: 0.1, depth: 300 },
+  /**
+   * Create raised curb borders along the road edges
+   */
+  private createRoadBorders(): void {
+    const curbMat = new StandardMaterial('curbMat', this.scene);
+    curbMat.diffuseColor = new Color3(0.6, 0.6, 0.6);
+    curbMat.specularColor = Color3.Black();
+    this.staticMaterials.push(curbMat);
+
+    const halfRoad = Config.ROAD_WIDTH / 2;
+    const curbWidth = 0.4;
+
+    for (const side of [-1, 1]) {
+      const curb = MeshBuilder.CreateBox(
+        `curb_${side}`,
+        { width: curbWidth, height: 0.3, depth: 300 },
+        this.scene
+      );
+      curb.position = new Vector3(side * (halfRoad + curbWidth / 2), 0.05, 75);
+      curb.material = curbMat;
+      this.staticMeshes.push(curb);
+    }
+  }
+
+  /**
+   * Create trees, rocks, and barriers along the road sides.
+   * All props are static — frozen after placement.
+   */
+  private createEnvironmentProps(): void {
+    const halfRoad = Config.ROAD_WIDTH / 2 + 2;
+
+    // Static materials — created once, frozen later
+    const trunkMat = new StandardMaterial('trunkMat', this.scene);
+    trunkMat.diffuseColor = new Color3(0.45, 0.28, 0.15);
+    trunkMat.specularColor = Color3.Black();
+    this.staticMaterials.push(trunkMat);
+
+    const leafMat = new StandardMaterial('leafMat', this.scene);
+    leafMat.diffuseColor = new Color3(0.2, 0.55, 0.15);
+    leafMat.specularColor = Color3.Black();
+    this.staticMaterials.push(leafMat);
+
+    const rockMat = new StandardMaterial('rockMat', this.scene);
+    rockMat.diffuseColor = new Color3(0.5, 0.48, 0.45);
+    rockMat.specularColor = Color3.Black();
+    this.staticMaterials.push(rockMat);
+
+    // Templates for instancing
+    const trunkTemplate = MeshBuilder.CreateCylinder(
+      'trunkTemplate',
+      { diameter: 0.6, height: 2, tessellation: 6 },
       this.scene
     );
-    leftMarker.position = new Vector3(
-      (Config.LANES.LEFT + Config.LANES.CENTER) / 2,
-      0.1,
-      75
-    );
-    leftMarker.material = markerMaterial;
+    trunkTemplate.material = trunkMat;
+    trunkTemplate.setEnabled(false);
 
-    // Right lane marker
-    const rightMarker = MeshBuilder.CreateBox(
-      'rightMarker',
-      { width: 0.2, height: 0.1, depth: 300 },
+    const canopyTemplate = MeshBuilder.CreateCylinder(
+      'canopyTemplate',
+      { diameterTop: 0, diameterBottom: 2.5, height: 3, tessellation: 6 },
       this.scene
     );
-    rightMarker.position = new Vector3(
-      (Config.LANES.RIGHT + Config.LANES.CENTER) / 2,
-      0.1,
-      75
+    canopyTemplate.material = leafMat;
+    canopyTemplate.setEnabled(false);
+
+    const rockTemplate = MeshBuilder.CreateSphere(
+      'rockTemplate',
+      { diameter: 1, segments: 4 },
+      this.scene
     );
-    rightMarker.material = markerMaterial;
+    rockTemplate.material = rockMat;
+    rockTemplate.setEnabled(false);
+
+    // Place trees and rocks along both sides
+    for (let z = -10; z < 150; z += 8) {
+      for (const side of [-1, 1]) {
+        const xBase = side * (halfRoad + 4 + Math.random() * 6);
+        const zJitter = z + (Math.random() - 0.5) * 4;
+
+        if (Math.random() < 0.7) {
+          // Tree
+          const trunk = trunkTemplate.createInstance(`trunk_${z}_${side}`);
+          trunk.position = new Vector3(xBase, 1, zJitter);
+          this.staticMeshes.push(trunk);
+
+          const canopy = canopyTemplate.createInstance(`canopy_${z}_${side}`);
+          canopy.position = new Vector3(xBase, 3.2, zJitter);
+          const scale = 0.8 + Math.random() * 0.5;
+          canopy.scaling.set(scale, scale, scale);
+          this.staticMeshes.push(canopy);
+        } else {
+          // Rock cluster
+          const rockCount = 1 + Math.floor(Math.random() * 3);
+          for (let r = 0; r < rockCount; r++) {
+            const rock = rockTemplate.createInstance(`rock_${z}_${side}_${r}`);
+            const rockScale = 0.4 + Math.random() * 0.8;
+            rock.scaling.set(rockScale, rockScale * 0.6, rockScale);
+            rock.position = new Vector3(
+              xBase + (Math.random() - 0.5) * 2,
+              rockScale * 0.25,
+              zJitter + (Math.random() - 0.5) * 2
+            );
+            this.staticMeshes.push(rock);
+          }
+        }
+      }
+    }
   }
 
   /**

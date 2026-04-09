@@ -35,22 +35,13 @@ export class ObstacleManager implements IUpdatable {
       this.spawnTimer = 0;
     }
 
-    // Update all obstacles
+    // Update all obstacles — movement and cleanup only.
+    // Collision handling is done by EnhancedGameManager (sound, text, combos, multipliers).
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
       const obstacle = this.obstacles[i];
       obstacle.update(deltaTime);
 
-      // Check collision with player
-      if (!obstacle.hasAlreadyCollided()) {
-        const playerPos = player.getPosition();
-        const playerRadius = player.getCollisionRadius();
-
-        if (obstacle.checkCollision(playerPos, playerRadius)) {
-          obstacle.onCollision(player);
-        }
-      }
-
-      // Remove obstacles that went past player
+      // Remove obstacles that went past player or were destroyed by collision
       if (obstacle.shouldRemove()) {
         obstacle.destroy();
         this.obstacles.splice(i, 1);
@@ -67,27 +58,59 @@ export class ObstacleManager implements IUpdatable {
     const randomLane = laneValues[Math.floor(Math.random() * laneValues.length)];
     const laneX = this.getLaneXPosition(randomLane);
 
-    // Random obstacle type (2x enemies vs gates for challenge)
+    // Spawn rates: 12% multiply, 20% add, 10% divide, 58% enemy
     const rand = Math.random();
-    let obstacle: Obstacle;
 
-    if (rand < 0.33) {
-      // 33% chance: Addition gate
-      obstacle = this.createAddGate(laneX, randomLane);
+    if (rand < 0.12) {
+      // 12% chance: Multiply gate
+      const obstacle = this.createMultiplyGate(laneX, randomLane);
+      this.obstacles.push(obstacle);
+    } else if (rand < 0.32) {
+      // 20% chance: Addition gate
+      const obstacle = this.createAddGate(laneX, randomLane);
+      this.obstacles.push(obstacle);
+    } else if (rand < 0.42) {
+      // 10% chance: Division gate (orange warning — scales with crowd size)
+      const obstacle = this.createDivideGate(laneX, randomLane);
       this.obstacles.push(obstacle);
     } else {
-      // 67% chance: Enemy crowd (2x more enemies than gates)
-      obstacle = this.createEnemyCrowd(laneX, randomLane);
+      // 58% chance: Enemy crowd
+      const obstacle = this.createEnemyCrowd(laneX, randomLane);
       this.obstacles.push(obstacle);
 
       // 30% chance to spawn a gate behind the enemy (risk/reward trap)
       if (Math.random() < Config.TRAP_SPAWN_CHANCE) {
-        const trapGate = this.createAddGate(laneX, randomLane, 15); // 15 units behind enemy
+        const trapRoll = Math.random();
+        const trapGate = trapRoll < 0.3
+          ? this.createMultiplyGate(laneX, randomLane, 15)
+          : this.createAddGate(laneX, randomLane, 15);
         this.obstacles.push(trapGate);
       }
     }
   }
 
+  /**
+   * Create multiply gate
+   * @param offset Optional distance offset (positive = further away)
+   */
+  private createMultiplyGate(laneX: number, lane: Lane, offset: number = 0): Gate {
+    const multipliers = Config.GATE_MULTIPLIERS;
+    const value = multipliers[Math.floor(Math.random() * multipliers.length)];
+    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE + offset);
+
+    return new Gate(this.scene, position, lane, GateType.MULTIPLY, value);
+  }
+
+  /**
+   * Create division gate
+   */
+  private createDivideGate(laneX: number, lane: Lane, offset: number = 0): Gate {
+    const divisors = Config.GATE_DIVISORS;
+    const value = divisors[Math.floor(Math.random() * divisors.length)];
+    const position = new Vector3(laneX, 1.5, Config.OBSTACLE_SPAWN_DISTANCE + offset);
+
+    return new Gate(this.scene, position, lane, GateType.DIVIDE, value);
+  }
 
   /**
    * Create addition gate

@@ -96,6 +96,15 @@ export class Player implements IUpdatable, ICollidable {
   }
 
   /**
+   * Divide crowd count (always keeps at least 1)
+   */
+  public divideCrowd(divisor: number): void {
+    if (divisor <= 0) return;
+    this.crowdCount = Math.max(1, Math.floor(this.crowdCount / divisor));
+    this.crowdFormation.setCrowdCount(this.crowdCount);
+  }
+
+  /**
    * Get position as Vector3
    */
   public getPositionVector(): Vector3 {

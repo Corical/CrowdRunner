@@ -77,6 +77,7 @@ export class EnhancedGameManager {
 
   // Manual speed control (from UI slider)
   private manualSpeedMultiplier: number = 1.0;
+  private manualFrequencyOverride: boolean = false;
 
   private constructor() {}
 
@@ -204,6 +205,7 @@ export class EnhancedGameManager {
       this.manualSpeedMultiplier = speed;
     });
     this.uiManager.onFrequencyChange?.((interval: number) => {
+      this.manualFrequencyOverride = true;
       this.obstacleManager.setSpawnInterval(interval);
     });
 
@@ -279,8 +281,12 @@ export class EnhancedGameManager {
     const deltaTime = (currentTime - this.lastFrameTime) / 1000;
     this.lastFrameTime = currentTime;
 
-    // Update game
-    this.update(deltaTime);
+    // Update game — catch errors so the loop doesn't die silently
+    try {
+      this.update(deltaTime);
+    } catch (error) {
+      console.error('💥 Game loop error:', error);
+    }
 
     // Continue loop
     requestAnimationFrame(() => this.gameLoop());
@@ -313,9 +319,11 @@ export class EnhancedGameManager {
       this.particleSystem.updateTrailPosition(this.player.getPositionVector());
     }
 
-    // Update obstacles with difficulty-based spawn interval
-    const difficultyInterval = this.difficultySystem.getObstacleInterval();
-    this.obstacleManager.setSpawnInterval(difficultyInterval);
+    // Update obstacles — only auto-adjust interval if user hasn't overridden it
+    if (!this.manualFrequencyOverride) {
+      const difficultyInterval = this.difficultySystem.getObstacleInterval();
+      this.obstacleManager.setSpawnInterval(difficultyInterval);
+    }
     this.obstacleManager.update(adjustedDelta, this.player);
 
     // Check for gate collisions (with combo tracking)
@@ -463,32 +471,45 @@ export class EnhancedGameManager {
             this.adaptiveDifficultySystem.recordGateCollected();
           }
 
-          // Audio feedback
-          if (Config.ENABLE_SOUND) {
-            this.soundSystem.playSound(SoundType.GATE_COLLECT);
-          }
+          // Show floating text and play sound based on gate type
+          const gateType = (obstacle as any).gateType as string;
+          const isDivide = gateType === 'DIVIDE';
 
-          // CRITICAL: Show gain numbers if floating text enabled
           if (Config.ENABLE_FLOATING_TEXT) {
-            // Use the already-computed gateValue (with all multipliers applied)
-            const gateType = (obstacle as any).gateType;
             const pos = new BABYLON.Vector3(obstacle.getPosition().x, 2, obstacle.getPosition().z);
 
-            if (gateType === 0) { // Multiply
+            if (isDivide) {
+              this.floatingText.showLoss(gateValue, pos);
+            } else if (gateType === 'MULTIPLY') {
               this.floatingText.showMultiplier(gateValue, pos);
-            } else { // Add
+            } else {
               this.floatingText.showGain(gateValue, pos);
             }
           }
 
+          // Division sounds/feels like a hit, not a collect
+          if (Config.ENABLE_SOUND) {
+            this.soundSystem.playSound(isDivide ? SoundType.ENEMY_HIT : SoundType.GATE_COLLECT);
+          }
+
           if (this.animationsEnabled) {
-            // Additional visual feedback (particles, camera effects)
-            const gateColor = (obstacle as any).gateType === 0
-              ? BABYLON.Color3.Blue()
-              : BABYLON.Color3.Green();
-            this.particleSystem.createGateCollectEffect(obstacle.getPosition() as any, gateColor);
-            this.cameraEffects.shakeLight();
-            this.cameraEffects.zoomIn(0.9);
+            const gateColor = isDivide
+              ? BABYLON.Color3.FromHexString('#F97316')
+              : gateType === 'MULTIPLY'
+                ? BABYLON.Color3.Blue()
+                : BABYLON.Color3.Green();
+            const gatePos = obstacle.getPosition();
+            this.particleSystem.createGateCollectEffect(
+              new BABYLON.Vector3(gatePos.x, 1, gatePos.z),
+              gateColor
+            );
+
+            if (isDivide) {
+              this.cameraEffects.shakeMedium();
+            } else {
+              this.cameraEffects.shakeLight();
+              this.cameraEffects.zoomIn(0.9);
+            }
           }
 
           // Update stats
@@ -515,12 +536,11 @@ export class EnhancedGameManager {
           console.log('🔍 Enemy collision detected. God mode status:', Config.GOD_MODE);
           if (Config.GOD_MODE) {
             (obstacle as any).hasCollided = true;
-            obstacle.destroy();
+            (obstacle as any).shouldDestroy = true;
             if (Config.ENABLE_FLOATING_TEXT) {
-              const pos = obstacle.getPosition() as any;
+              const pos = obstacle.getPosition();
               this.floatingText.showPowerUpActivated('GOD MODE!', new BABYLON.Vector3(pos.x, 2, pos.z));
             }
-            console.log('🛡️ God mode blocked damage!');
             return;
           }
 
@@ -539,13 +559,14 @@ export class EnhancedGameManager {
           // Check for shield protection
           if (this.powerUpManager.hasShield()) {
             this.powerUpManager.consumeShield();
+            (obstacle as any).hasCollided = true;
+            (obstacle as any).shouldDestroy = true;
             if (Config.ENABLE_SOUND) {
               this.soundSystem.playSound(SoundType.POWER_UP);
             }
             if (Config.ENABLE_FLOATING_TEXT) {
               this.floatingText.showPowerUpActivated('SHIELD SAVED!', this.player.getPositionVector());
             }
-            obstacle.destroy();
             return;
           }
 

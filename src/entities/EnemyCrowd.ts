@@ -18,13 +18,18 @@ import { Config } from '@/core/Config';
  */
 export class EnemyCrowd extends Obstacle {
   private enemyCount: number;
-  private glowParts: Mesh[];
+  private glowParts!: Mesh[];
   private animationTime: number = 0;
 
   constructor(scene: Scene, position: Vector3, lane: number, count: number) {
     super(scene, position, lane);
     this.enemyCount = count;
+
+    // super() called createMesh() before enemyCount was set — rebuild with correct label
+    if (this.glowParts) this.glowParts.forEach(p => p.dispose());
     this.glowParts = [];
+    if (this.mesh) this.mesh.dispose();
+    this.createMesh();
 
     // Create label after properties are set
     const color = Color3.FromHexString(Config.COLORS.ENEMY);
@@ -198,13 +203,8 @@ export class EnemyCrowd extends Obstacle {
     // Subtract enemy count from player crowd
     player.removeFromCrowd(this.enemyCount);
 
-    // Visual feedback - fade out all parts
-    this.glowParts.forEach((part) => {
-      const mat = part.material as StandardMaterial;
-      if (mat) {
-        mat.alpha = 0.2;
-      }
-    });
+    // Destroy on contact
+    this.shouldDestroy = true;
   }
 
   /**
